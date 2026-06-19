@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<style>
+  :root {
+    --bg: var(--figma-color-bg, #fff);
+    --text: var(--figma-color-text, #1a1a1a);
+    --text-secondary: var(--figma-color-text-secondary, #8c8c8c);
+    --border: var(--figma-color-border, #e6e6e6);
+    --input-bg: var(--figma-color-bg-secondary, #f5f5f5);
+    --brand: var(--figma-color-bg-brand, #0d99ff);
+    --brand-text: var(--figma-color-text-onbrand, #fff);
+    --danger: var(--figma-color-text-danger, #e03e3e);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: Inter, -apple-system, system-ui, sans-serif;
+    font-size: 12px;
+    color: var(--text);
+    background: var(--bg);
+    padding: 16px;
+  }
+
+  .label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .hint {
+    color: var(--text-secondary);
+    font-weight: 400;
+  }
+
+  .field { margin-bottom: 16px; }
+
+  .version-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0 10px;
+    transition: border-color .15s;
+  }
+  .version-wrap:focus-within { border-color: var(--brand); }
+
+  .prefix {
+    color: var(--text-secondary);
+    font-weight: 500;
+    user-select: none;
+  }
+
+  input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+    padding: 9px 0;
+    font-family: inherit;
+  }
+
+  .preview {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 11px;
+    line-height: 1.5;
+    word-break: break-all;
+  }
+  .preview .pname { color: var(--text); font-weight: 500; }
+  .preview .suffix { color: var(--brand); font-weight: 600; }
+
+  /* Campo de texto genérico (nome do arquivo) */
+  .text-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0 10px;
+    transition: border-color .15s;
+  }
+  .text-wrap:focus-within { border-color: var(--brand); }
+
+  .label-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .restore-link {
+    font-weight: 500;
+    color: var(--brand);
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .restore-link:hover { text-decoration: underline; }
+
+  /* Checkbox de layout */
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .check input { flex: none; margin: 0; cursor: pointer; }
+  .check .check-text { font-weight: 600; }
+  .check .check-hint { color: var(--text-secondary); font-weight: 400; }
+
+  .selection {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--danger); flex: none;
+  }
+  .dot.ok { background: #14ae5c; }
+
+  button {
+    width: 100%;
+    border: none;
+    border-radius: 6px;
+    background: var(--brand);
+    color: var(--brand-text);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 11px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+
+  .msg {
+    margin-top: 12px;
+    font-size: 11px;
+    min-height: 14px;
+    color: var(--danger);
+  }
+  .msg.ok { color: #14ae5c; }
+</style>
+</head>
+<body>
+  <div class="field">
+    <label class="label" for="version">
+      Versão <span class="hint">— formato 0.0</span>
+    </label>
+    <div class="version-wrap">
+      <span class="prefix">v.</span>
+      <input id="version" type="text" inputmode="decimal" placeholder="1.0" value="1.0" />
+    </div>
+  </div>
+
+  <div class="field">
+    <div class="label-row">
+      <label class="label" for="fileName" style="margin-bottom:0">Nome do arquivo</label>
+      <a class="restore-link" id="restoreName">usar nome do Figma</a>
+    </div>
+    <div class="text-wrap">
+      <input id="fileName" type="text" placeholder="Nome do arquivo" />
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="check">
+      <input type="checkbox" id="layout" />
+      <span class="check-text">Layout</span>
+      <span class="check-hint">— acrescenta (desktop) ou (mobile)</span>
+    </label>
+  </div>
+
+  <div class="field">
+    <span class="label">Nome final</span>
+    <div class="preview" id="preview">—</div>
+  </div>
+
+  <div class="selection" id="selection">
+    <span class="dot" id="dot"></span>
+    <span id="selText">Nenhum frame selecionado</span>
+  </div>
+
+  <button id="export" disabled>Exportar PDF</button>
+  <div class="msg" id="msg"></div>
+
+<script>
+  const versionInput = document.getElementById("version");
+  const fileNameInput = document.getElementById("fileName");
+  const restoreLink = document.getElementById("restoreName");
+  const layoutCheckbox = document.getElementById("layout");
+  const previewEl = document.getElementById("preview");
+  const exportBtn = document.getElementById("export");
+  const msgEl = document.getElementById("msg");
+  const dotEl = document.getElementById("dot");
+  const selTextEl = document.getElementById("selText");
+
+  let docName = "documento";
+  let hasSelection = false;
+  let selectionWidth = null;
+  let nameInitialized = false;
+
+  // Nome base: o que o usuário digitou, ou o nome do Figma como fallback.
+  function currentName() {
+    const v = fileNameInput.value.trim();
+    return v || docName;
+  }
+
+  // Sufixo de layout. Marcado + frame selecionado -> valor real;
+  // marcado sem seleção -> indicação "(desktop/mobile)".
+  function layoutSuffix() {
+    if (!layoutCheckbox.checked) return "";
+    if (hasSelection && selectionWidth != null) {
+      return selectionWidth >= 400 ? " (desktop)" : " (mobile)";
+    }
+    return " (desktop/mobile)";
+  }
+
+  // ---- Formata a versão para o padrão "0.0" ----
+  function normalizeVersion(raw) {
+    // mantém só dígitos e ponto
+    let v = (raw || "").replace(/[^0-9.]/g, "");
+    const n = parseFloat(v);
+    if (isNaN(n)) return "1.0";
+    return n.toFixed(1); // garante sempre um dígito decimal: 1 -> "1.0"
+  }
+
+  function currentVersion() {
+    return normalizeVersion(versionInput.value);
+  }
+
+  function todayStr() {
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return `${dd}.${mm}.${d.getFullYear()}`;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[c]));
+  }
+
+  // Monta o nome final completo (usado também no export).
+  function buildFileName() {
+    return `${currentName()}${layoutSuffix()}-${todayStr()}-v.${currentVersion()}.pdf`;
+  }
+
+  function updatePreview() {
+    const base = escapeHtml(currentName());
+    const suffix = escapeHtml(layoutSuffix());
+    const tail = escapeHtml(`-${todayStr()}-v.${currentVersion()}.pdf`);
+    previewEl.innerHTML =
+      '<span class="pname">' + base + "</span>" +
+      (suffix ? '<span class="suffix">' + suffix + "</span>" : "") +
+      '<span class="pname">' + tail + "</span>";
+  }
+
+  // Nome do arquivo editável
+  fileNameInput.addEventListener("input", updatePreview);
+
+  // Restaura o nome original do Figma
+  restoreLink.addEventListener("click", () => {
+    fileNameInput.value = docName;
+    updatePreview();
+  });
+
+  // Checkbox de layout
+  layoutCheckbox.addEventListener("change", updatePreview);
+
+  // Enquanto digita: limpa caracteres inválidos
+  versionInput.addEventListener("input", () => {
+    versionInput.value = versionInput.value.replace(/[^0-9.]/g, "");
+    updatePreview();
+  });
+
+  // Ao sair do campo: normaliza para 0.0
+  versionInput.addEventListener("blur", () => {
+    versionInput.value = currentVersion();
+    updatePreview();
+  });
+
+  exportBtn.addEventListener("click", () => {
+    versionInput.value = currentVersion();
+    updatePreview();
+    msgEl.textContent = "";
+    msgEl.className = "msg";
+    parent.postMessage(
+      {
+        pluginMessage: {
+          type: "export",
+          version: currentVersion(),
+          fileName: buildFileName(),
+        },
+      },
+      "*"
+    );
+  });
+
+  // ---- Mensagens vindas do code.js ----
+  onmessage = (event) => {
+    const msg = event.data.pluginMessage;
+    if (!msg) return;
+
+    if (msg.type === "info") {
+      docName = msg.docName || "documento";
+      hasSelection = msg.count > 0;
+      selectionWidth = typeof msg.selectionWidth === "number" ? msg.selectionWidth : null;
+
+      // Preenche o campo de nome com o nome do Figma na primeira carga,
+      // sem sobrescrever uma edição já feita pelo usuário.
+      if (!nameInitialized) {
+        fileNameInput.value = docName;
+        nameInitialized = true;
+      }
+
+      dotEl.className = "dot" + (hasSelection ? " ok" : "");
+      if (hasSelection) {
+        selTextEl.textContent =
+          msg.count === 1
+            ? `Selecionado: ${msg.selectionName}`
+            : `${msg.count} itens — será exportado: ${msg.selectionName}`;
+      } else {
+        selTextEl.textContent = "Nenhum frame selecionado";
+      }
+
+      exportBtn.disabled = !hasSelection;
+      updatePreview();
+    }
+
+    if (msg.type === "download") {
+      const blob = new Blob([msg.bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = msg.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      msgEl.textContent = "PDF exportado: " + msg.fileName;
+      msgEl.className = "msg ok";
+    }
+
+    if (msg.type === "error") {
+      msgEl.textContent = msg.message;
+      msgEl.className = "msg";
+    }
+  };
+
+  // Pede o estado inicial
+  parent.postMessage({ pluginMessage: { type: "init" } }, "*");
+</script>
+</body>
+</html>

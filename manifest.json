@@ -1,0 +1,12 @@
+{
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": ["none"] },
+  "name": "Exportar PDF com Versão",
+  "id": "1643286081179640088",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"]
+  
+}
