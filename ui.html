@@ -493,6 +493,7 @@
     </div>
     <div class="list" id="list"></div>
     <div class="empty" id="empty">Selecione uma ou mais telas no canvas.</div>
+    <div class="note" id="orderNote" style="display:none">A ordem da lista define a ordem das páginas do PDF — use as setas para reordenar.</div>
     <div class="totals" id="totals"></div>
   </div>
 
@@ -633,6 +634,7 @@
   const emptyEl = document.getElementById("empty");
   const selCountEl = document.getElementById("selCount");
   const totalsEl = document.getElementById("totals");
+  const orderNoteEl = document.getElementById("orderNote");
   const modeSeparateLabel = document.getElementById("modeSeparateLabel");
   const modeSingleLabel = document.getElementById("modeSingleLabel");
   const modeFieldEl = document.getElementById("modeField");
@@ -1414,6 +1416,10 @@
     const compressed = !!compression();
     const showComp = compressed && compKey === compressionKey();
 
+    // A numeração só significa algo no PDF único (ordem das páginas);
+    // no modo separado ela seria um número sem função.
+    orderNoteEl.style.display = reorderable ? "block" : "none";
+
     nodes.forEach((n, i) => {
       const row = document.createElement("div");
       row.className = "item";
@@ -1421,6 +1427,7 @@
       const idx = document.createElement("span");
       idx.className = "idx";
       idx.textContent = i + 1;
+      idx.style.display = reorderable ? "" : "none";
 
       const nm = document.createElement("span");
       nm.className = "nm";
