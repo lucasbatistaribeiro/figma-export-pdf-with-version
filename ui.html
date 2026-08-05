@@ -225,6 +225,21 @@
     color: var(--text-secondary);
     font-variant-numeric: tabular-nums;
   }
+  .item .thumb {
+    flex: none;
+    width: 28px;
+    height: 20px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--input-bg);
+    overflow: hidden;
+  }
+  .item .thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
   .item .nm {
     flex: 1;
     min-width: 0;
@@ -680,6 +695,21 @@
   let pages = {};              // id -> { jpeg, pxW, pxH, ptW, ptH }
   let compKey = null;          // assinatura da compressão a que compSizes/pages se referem
   let clampedAny = false;      // alguma tela teve a resolução reduzida
+
+  // Miniaturas das telas. Cache por id, válido pela sessão do plugin —
+  // o iframe morre ao fechar, então os object URLs vão junto.
+  const thumbs = {};       // id -> object URL do PNG pequeno
+  const thumbPending = {}; // id -> true enquanto o code.js exporta
+
+  function requestThumbs() {
+    const ids = nodes
+      .filter((n) => !thumbs[n.id] && !thumbPending[n.id])
+      .slice(0, 30) // teto por pedido; seleções gigantes ficam sem as últimas
+      .map((n) => n.id);
+    if (ids.length === 0) return;
+    ids.forEach((id) => (thumbPending[id] = true));
+    parent.postMessage({ pluginMessage: { type: "thumbs", ids } }, "*");
+  }
 
   // Tempo mínimo de animação: sem isso, uma tela pequena faz o skeleton
   // aparecer e desaparecer num piscar, que lê como glitch.
@@ -1534,6 +1564,16 @@
       idx.textContent = i + 1;
       idx.style.display = reorderable ? "" : "none";
 
+      // Miniatura (ou caixinha vazia enquanto o PNG não chega).
+      const thumb = document.createElement("span");
+      thumb.className = "thumb";
+      if (thumbs[n.id]) {
+        const img = document.createElement("img");
+        img.src = thumbs[n.id];
+        img.alt = "";
+        thumb.appendChild(img);
+      }
+
       const nm = document.createElement("span");
       nm.className = "nm";
       nm.textContent = n.name;
@@ -1562,6 +1602,7 @@
       }
 
       row.appendChild(idx);
+      row.appendChild(thumb);
       row.appendChild(nm);
       row.appendChild(meta);
 
@@ -2040,6 +2081,15 @@
           : "Selecione uma ou mais telas no canvas.";
 
       refresh();
+      requestThumbs();
+    }
+
+    if (msg.type === "thumb") {
+      delete thumbPending[msg.id];
+      if (thumbs[msg.id]) URL.revokeObjectURL(thumbs[msg.id]);
+      const blob = new Blob([msg.bytes], { type: "image/png" });
+      thumbs[msg.id] = URL.createObjectURL(blob);
+      renderList();
     }
 
     if (msg.type === "progress") {
