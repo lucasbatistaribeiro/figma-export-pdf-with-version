@@ -159,7 +159,7 @@ Os detalhes trazem o passo em que o plugin estava, a tela envolvida, a configura
 
 **Nomeação**
 
-- **Versão padronizada** — o campo aceita só números e ponto, e é normalizado para o formato `0.0` (ex.: `1` vira `1.0`).
+- **Versão padronizada** — o campo aceita só números e ponto, e é normalizado para o formato `X.Y` (ex.: `1` vira `1.0`). O minor é preservado como texto: `1.10` e `2.25` continuam `1.10` e `2.25`.
 - **Nome editável** — por padrão usa o nome do documento do Figma, com link rápido para restaurá-lo (*"usar nome do Figma"*).
 - **Sufixo de layout automático** — marcando *Sufixo de layout*, o plugin acrescenta `(desktop)` ou `(mobile)` ao nome com base na largura do frame (≥ 400px = desktop).
 - **Pré-visualização ao vivo** — o campo *Nome final* mostra exatamente como os arquivos serão salvos, atualizando em tempo real.
