@@ -20,6 +20,9 @@ function canExport(node) {
   return typeof node.exportAsync === "function";
 }
 
+// Última coisa que o plugin estava fazendo, para enriquecer o relato de erro.
+let currentStep = "—";
+
 // Envia para a UI o estado atual: nome do documento e o que está selecionado.
 function sendInfo() {
   const selection = figma.currentPage.selection;
@@ -54,11 +57,25 @@ async function resolveNodes(ids) {
   return nodes;
 }
 
-function noExportableSelection() {
+// Erro com contexto: a UI mostra a mensagem e guarda os detalhes num bloco
+// recolhível, para o usuário poder copiar e relatar.
+function reportError(message, e, context) {
+  const lines = (context || []).slice();
+  if (e && e.message) lines.push("Mensagem: " + e.message);
+  if (e && e.stack) lines.push("", String(e.stack));
+  else if (e && !e.message) lines.push("Erro: " + String(e));
+
   figma.ui.postMessage({
     type: "error",
-    message: "Nenhuma das telas selecionadas pôde ser exportada.",
+    message,
+    details: lines.join("\n"),
   });
+}
+
+function noExportableSelection() {
+  reportError("Nenhuma das telas selecionadas pôde ser exportada.", null, [
+    "Nada na seleção expõe exportAsync (texto solto, guias ou nós bloqueados no lugar de frames).",
+  ]);
 }
 
 // ---- Modo 1: um PDF por tela (vários arquivos) ----
@@ -71,6 +88,7 @@ async function exportSeparate(items) {
     if (!node || node.removed || !canExport(node)) continue;
 
     progress("export", done, total, node.name);
+    currentStep = 'exportando PDF de "' + node.name + '" (' + node.type + ")";
     const bytes = await node.exportAsync({ format: "PDF" });
     done++;
 
@@ -109,12 +127,14 @@ async function exportSingle(ids, fileName) {
 
   try {
     progress("export", 0, total, "Montando páginas…");
+    currentStep = "criando a página temporária";
     tempPage = figma.createPage();
     tempPage.name = TEMP_PAGE_NAME;
 
     let y = 0;
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
+      currentStep = 'clonando "' + node.name + '" (' + node.type + ")";
       const clone = node.clone();
 
       if (NO_WRAP.indexOf(clone.type) !== -1) {
@@ -146,6 +166,7 @@ async function exportSingle(ids, fileName) {
       progress("export", i + 1, total, node.name);
     }
 
+    currentStep = "exportando a página temporária em PDF";
     await tempPage.loadAsync();
     const bytes = await tempPage.exportAsync({ format: "PDF" });
 
@@ -162,13 +183,13 @@ async function exportSingle(ids, fileName) {
       try {
         tempPage.remove();
       } catch (e) {
-        figma.ui.postMessage({
-          type: "error",
-          message:
-            'Não foi possível remover a página temporária "' +
+        reportError(
+          'Não foi possível remover a página temporária "' +
             TEMP_PAGE_NAME +
             '". Apague-a manualmente.',
-        });
+          e,
+          ["Etapa: " + currentStep]
+        );
       }
     }
   }
@@ -210,6 +231,7 @@ async function rasterize(purpose, ids, scale, wantNative) {
 
     let nativeSize = null;
     if (wantNative) {
+      currentStep = 'medindo o PDF vetorial de "' + node.name + '"';
       const pdf = await node.exportAsync({ format: "PDF" });
       nativeSize = pdf.length;
     }
@@ -218,6 +240,8 @@ async function rasterize(purpose, ids, scale, wantNative) {
     let usedScale = null;
     if (scale) {
       usedScale = effectiveScale(node, scale);
+      currentStep =
+        'rasterizando "' + node.name + '" em ' + usedScale.toFixed(2) + "x";
       bytes = await node.exportAsync({
         format: "PNG",
         constraint: { type: "SCALE", value: usedScale },
@@ -257,10 +281,11 @@ figma.ui.onmessage = async (msg) => {
     try {
       await rasterize("measure", ids, msg.scale || null, msg.native !== false);
     } catch (e) {
-      figma.ui.postMessage({
-        type: "error",
-        message: "Erro ao calcular tamanhos: " + e.message,
-      });
+      reportError("Não foi possível calcular os tamanhos.", e, [
+        "Etapa: " + currentStep,
+        "Telas: " + ids.length,
+        "Escala: " + (msg.scale || "—"),
+      ]);
     }
     return;
   }
@@ -269,10 +294,9 @@ figma.ui.onmessage = async (msg) => {
     const items = Array.isArray(msg.items) ? msg.items : [];
 
     if (items.length === 0) {
-      figma.ui.postMessage({
-        type: "error",
-        message: "Selecione uma ou mais telas antes de exportar.",
-      });
+      reportError("Selecione uma ou mais telas antes de exportar.", null, [
+        "A UI enviou uma lista vazia de itens.",
+      ]);
       return;
     }
 
@@ -289,10 +313,12 @@ figma.ui.onmessage = async (msg) => {
         await exportSeparate(items);
       }
     } catch (e) {
-      figma.ui.postMessage({
-        type: "error",
-        message: "Erro ao exportar: " + e.message,
-      });
+      reportError("Não foi possível concluir a exportação.", e, [
+        "Etapa: " + currentStep,
+        "Modo: " + (msg.mode === "single" ? "PDF único" : "arquivos separados"),
+        "Compressão: " + (msg.scale ? msg.scale + "x" : "nenhuma"),
+        "Telas: " + items.length,
+      ]);
     }
   }
 };
