@@ -82,11 +82,13 @@ Clique em **calcular tamanhos** — ao lado do campo *Compressão* — para ver,
 
 ```
 Telas selecionadas — 3 tela(s)
-1  Home                        1,8 MB  89 KB
-2  Login                       410 KB  64 KB
-3  Dashboard                   3,0 MB  105 KB
+Home                           1,8 MB  89 KB
+Login                          410 KB  64 KB
+Dashboard                      3,0 MB  105 KB
 Total: 5,1 MB → 258 KB (−95%)
 ```
+
+*(No modo PDF único a lista também é numerada — a numeração é a ordem das páginas.)*
 
 Os números não são chute: o plugin exporta e monta os arquivos de verdade para medir. Os nomes na pré-visualização também passam a mostrar o tamanho de cada um.
 
@@ -297,6 +299,20 @@ O plugin começou exportando **um** frame com nome padronizado. Tudo abaixo entr
 | [#3](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/3) | Seletor de modo só aparece com 2+ telas selecionadas |
 | [#4](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/4) | Skeleton e botão animado durante a exportação, com painel de erro detalhado |
 | [#5](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/5) | Opção de compactar tudo em `.zip`, com nome próprio |
+
+Depois, uma passada de usabilidade e arquitetura da informação (também 05.08.2026), guiada por uma análise do fluxo de exportação:
+
+| PR | O que entrou |
+|----|--------------|
+| [#7](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/7) | Formulário reordenado seguindo o fluxo mental: telas e modo no topo, prévia junto da nomeação |
+| [#8](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/8) | "Layout" vira "Sufixo de layout", com hints que dizem onde cada campo entra no nome |
+| [#9](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/9) | Correção da normalização da versão — `2.25` não é mais arredondado para `2.3` |
+| [#10](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/10) | Nota explicando que a ordem da lista define as páginas do PDF único; numeração só onde significa algo |
+| [#11](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/11) | "Calcular tamanhos" movido para junto da compressão, com o benefício explicado na nota do campo |
+| [#12](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/12) | Acessibilidade por teclado: radios do seletor de modo focáveis e links de restaurar viram botões |
+| [#13](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/13) | Preferências lembradas entre sessões (modo, compressão, sufixo de layout, `.zip`) |
+| [#14](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/14) | Botão fica verde com "✓ Exportado" ao concluir |
+| [#15](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/15) | Miniaturas das telas na lista de seleção |
 
 ## 📄 Licença
 
