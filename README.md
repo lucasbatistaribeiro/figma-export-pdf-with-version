@@ -35,7 +35,7 @@ Cada parte do nome é montada a partir dos campos da interface:
 
 ## 🖼️ Exportando várias telas
 
-Selecione quantas telas quiser e escolha o modo de exportação:
+Selecione quantas telas quiser e escolha o modo de exportação. O seletor **Como exportar** só aparece a partir de **duas telas selecionadas** — com uma só, os dois modos gerariam exatamente o mesmo arquivo. A escolha fica guardada: se a seleção diminuir para uma tela e voltar a crescer, o modo escolhido continua lá.
 
 ### Arquivos separados — 1 PDF por tela
 
@@ -124,7 +124,7 @@ Como o plugin ainda não está publicado na Figma Community, você o roda localm
 1. Selecione **uma ou mais telas** no canvas.
 2. Rode o plugin (**Plugins → Development → Exportar PDF com Versão**).
 3. Ajuste os campos:
-   - **Como exportar** — *Arquivos separados* ou *PDF único*
+   - **Como exportar** — *Arquivos separados* ou *PDF único* (aparece com 2+ telas)
    - **Versão** — ex.: `1.0`
    - **Nome do arquivo** — editável (ou use o nome do Figma)
    - **Layout** — marque para adicionar `(desktop)`/`(mobile)`
