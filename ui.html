@@ -380,6 +380,11 @@
   button#export {
     position: relative;
     overflow: hidden;
+    transition: background-color .25s;
+  }
+  /* Fecho do ciclo: verde por alguns segundos ao concluir a exportação */
+  button#export.success {
+    background: var(--success);
   }
   .btn-progress {
     position: absolute;
@@ -1340,6 +1345,29 @@
     btnProgressEl.style.width = "100%";
   }
 
+  // ---- Estado de sucesso do botão ----
+  // O botão fica verde com "✓ Exportado" por alguns segundos ao concluir,
+  // para o desfecho não depender só da linha discreta de mensagem.
+  const SUCCESS_MS = 2500;
+  let successActive = false;
+  let successTimer = null;
+
+  function showSuccess() {
+    clearTimeout(successTimer);
+    successActive = true;
+    exportBtn.classList.add("success");
+    successTimer = setTimeout(clearSuccess, SUCCESS_MS);
+  }
+
+  function clearSuccess() {
+    clearTimeout(successTimer);
+    successTimer = null;
+    if (!successActive) return;
+    successActive = false;
+    exportBtn.classList.remove("success");
+    updateButton();
+  }
+
   // Liga/desliga o skeleton do formulário e a animação do botão.
   function setBusy(on) {
     if (unbusyTimer) {
@@ -1455,6 +1483,10 @@
     }
 
     if (busy) return; // o texto durante a exportação é controlado pelo progresso
+    if (successActive) {
+      setExportLabel("✓ Exportado");
+      return;
+    }
     if (n === 0) {
       setExportLabel("Exportar PDF");
     } else if (zipEnabled()) {
@@ -1727,6 +1759,7 @@
         info.total === 1 ? "PDF exportado." : `${info.total} PDFs exportados.`;
     }
     msgEl.className = "msg ok";
+    showSuccess();
     setBusy(false); // já chama refresh() ao encerrar a animação
   }
 
@@ -1805,6 +1838,7 @@
   measureBtn.addEventListener("click", () => {
     if (measuring || busy || nodes.length === 0) return;
 
+    clearSuccess();
     const c = compression();
     // só pede ao Figma o que ainda não está em cache
     const needNative = nodes.some((n) => nativeSizes[n.id] == null);
@@ -1840,6 +1874,7 @@
   exportBtn.addEventListener("click", () => {
     if (busy || measuring || nodes.length === 0) return;
 
+    clearSuccess();
     versionInput.value = currentVersion();
     const c = compression();
     const items = buildItems();
@@ -1890,6 +1925,7 @@
   // Erro: cancela a animação na hora (sem esperar o tempo mínimo) e mostra a
   // mensagem com os detalhes técnicos recolhidos.
   function fail(message, details) {
+    clearSuccess();
     if (unbusyTimer) {
       clearTimeout(unbusyTimer);
       unbusyTimer = null;

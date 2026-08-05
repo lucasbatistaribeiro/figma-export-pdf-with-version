@@ -136,6 +136,7 @@ Ao clicar em **Exportar**, o formulário inteiro vira *skeleton* — blocos cinz
 - Os blocos preservam a altura original, então **não há salto de layout** ao entrar e sair do estado de carregamento.
 - A barra é **determinada** quando o total é conhecido (`2/3`) e vira uma faixa correndo nas etapas sem contagem — montagem das páginas, geração do PDF final.
 - A animação dura até a exportação concluir, com um piso de 450 ms para que um export instantâneo não pisque na tela.
+- Ao concluir, o botão fica **verde com "✓ Exportado"** por alguns segundos — o desfecho não depende só da linha de mensagem.
 - `prefers-reduced-motion` desliga as animações e mantém só os blocos estáticos.
 
 ### Quando dá erro
