@@ -78,10 +78,10 @@ Quanto isso reduz depende inteiramente do conteúdo: uma tela com fotos e áreas
 
 ### Prévia do tamanho final
 
-Clique em **calcular tamanhos** para ver, antes de exportar, quanto cada arquivo vai pesar (números do exemplo são ilustrativos):
+Clique em **calcular tamanhos** — ao lado do campo *Compressão* — para ver, antes de exportar, quanto cada arquivo vai pesar. O resultado aparece na lista de telas (números do exemplo são ilustrativos):
 
 ```
-Telas selecionadas — 3 tela(s)              recalcular
+Telas selecionadas — 3 tela(s)
 1  Home                        1,8 MB  89 KB
 2  Login                       410 KB  64 KB
 3  Dashboard                   3,0 MB  105 KB
@@ -206,7 +206,7 @@ Como o plugin ainda não está publicado na Figma Community, você o roda localm
 5. Escolha as opções de saída:
    - **Compressão** — deixe em *Nenhuma* para PDF vetorial, ou escolha um preset
    - **Compactar em .zip** — marque para receber um único arquivo, e dê um nome a ele
-6. *(Opcional)* Clique em **calcular tamanhos** para ver o peso de cada arquivo antes de exportar.
+6. *(Opcional)* Clique em **calcular tamanhos**, ao lado de *Compressão*, para ver o peso de cada arquivo antes de exportar.
 7. Clique em **Exportar** — o download começa automaticamente com os nomes montados.
 
 > Ao exportar vários arquivos soltos, o navegador pode pedir permissão para "baixar vários arquivos". Aceite uma vez e os seguintes passam direto — ou marque **Compactar em .zip**, que baixa um arquivo só e não dispara o aviso.

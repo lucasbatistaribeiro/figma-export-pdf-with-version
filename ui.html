@@ -487,10 +487,7 @@
  <!-- tudo aqui dentro vira skeleton durante a exportação -->
  <div id="form">
   <div class="field">
-    <div class="label-row">
-      <span class="label" style="margin-bottom:0">Telas selecionadas <span class="hint" id="selCount">0</span></span>
-      <button class="link" id="measure" disabled>calcular tamanhos</button>
-    </div>
+    <span class="label">Telas selecionadas <span class="hint" id="selCount">0</span></span>
     <div class="list" id="list"></div>
     <div class="empty" id="empty">Selecione uma ou mais telas no canvas.</div>
     <div class="note" id="orderNote" style="display:none">A ordem da lista define a ordem das páginas do PDF — use as setas para reordenar.</div>
@@ -548,7 +545,10 @@
   </div>
 
   <div class="field">
-    <label class="label" for="compress">Compressão</label>
+    <div class="label-row">
+      <label class="label" for="compress" style="margin-bottom:0">Compressão</label>
+      <button class="link" id="measure" disabled>calcular tamanhos</button>
+    </div>
     <select id="compress">
       <option value="none" selected>Nenhuma — vetorial, texto selecionável</option>
       <option value="light">Leve — 144 DPI, qualidade 92%</option>
@@ -1361,14 +1361,19 @@
       qualityValueEl.textContent = qualityInput.value + "%";
     }
 
+    // "calcular tamanhos" mostra o resultado na lista de telas, lá em cima.
+    const measureHint =
+      " “Calcular tamanhos” mede o peso final de cada arquivo antes de exportar.";
     if (!c) {
       compressNoteEl.textContent =
-        "PDF vetorial gerado pelo Figma: texto selecionável e melhor qualidade, arquivo maior.";
+        "PDF vetorial gerado pelo Figma: texto selecionável e melhor qualidade, arquivo maior." +
+        measureHint;
     } else {
       compressNoteEl.textContent =
         "As telas são rasterizadas em JPEG a " +
         Math.round(72 * c.scale) +
-        " DPI. O arquivo fica bem menor, mas o texto deixa de ser selecionável.";
+        " DPI. O arquivo fica bem menor, mas o texto deixa de ser selecionável." +
+        measureHint;
     }
   }
 
