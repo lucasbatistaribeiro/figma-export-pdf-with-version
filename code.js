@@ -271,7 +271,23 @@ async function rasterize(purpose, ids, scale, wantNative) {
 // Mensagens vindas da UI
 figma.ui.onmessage = async (msg) => {
   if (msg.type === "init") {
+    // Preferências salvas entre sessões (modo, compressão, layout, .zip).
+    try {
+      const settings = await figma.clientStorage.getAsync("settings");
+      if (settings) figma.ui.postMessage({ type: "settings", settings });
+    } catch (e) {
+      // sem preferências salvas (ou storage indisponível): segue com os padrões
+    }
     sendInfo();
+    return;
+  }
+
+  if (msg.type === "saveSettings") {
+    try {
+      await figma.clientStorage.setAsync("settings", msg.settings);
+    } catch (e) {
+      // falha ao salvar preferências não deve interromper o uso
+    }
     return;
   }
 
