@@ -198,16 +198,16 @@ Como o plugin ainda não está publicado na Figma Community, você o roda localm
 
 1. Selecione **uma ou mais telas** no canvas.
 2. Rode o plugin (**Plugins → Development → Exportar PDF com Versão**).
-3. Ajuste os campos:
-   - **Como exportar** — *Arquivos separados* ou *PDF único* (aparece com 2+ telas)
-   - **Versão** — ex.: `1.0`
+3. Confira as **Telas selecionadas**, no topo (e a ordem, no modo *PDF único*), e escolha **Como exportar** — *Arquivos separados* ou *PDF único* (aparece com 2+ telas).
+4. Ajuste a nomeação, conferindo o resultado no **Nome final**, logo abaixo:
    - **Nome do arquivo** — editável (ou use o nome do Figma)
+   - **Versão** — ex.: `1.0`
    - **Layout** — marque para adicionar `(desktop)`/`(mobile)`
+5. Escolha as opções de saída:
    - **Compressão** — deixe em *Nenhuma* para PDF vetorial, ou escolha um preset
    - **Compactar em .zip** — marque para receber um único arquivo, e dê um nome a ele
-4. Confira a lista de telas (e a ordem, no modo *PDF único*) e o **Nome final** na pré-visualização.
-5. *(Opcional)* Clique em **calcular tamanhos** para ver o peso de cada arquivo antes de exportar.
-6. Clique em **Exportar** — o download começa automaticamente com os nomes montados.
+6. *(Opcional)* Clique em **calcular tamanhos** para ver o peso de cada arquivo antes de exportar.
+7. Clique em **Exportar** — o download começa automaticamente com os nomes montados.
 
 > Ao exportar vários arquivos soltos, o navegador pode pedir permissão para "baixar vários arquivos". Aceite uma vez e os seguintes passam direto — ou marque **Compactar em .zip**, que baixa um arquivo só e não dispara o aviso.
 
