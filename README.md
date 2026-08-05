@@ -179,6 +179,7 @@ Os detalhes trazem o passo em que o plugin estava, a tela envolvida, a configura
 - **Erro com detalhes** — a animação é cancelada e um painel mostra a mensagem, a etapa, a tela envolvida, a configuração e o stack, com botão para copiar.
 - **Só o que faz sentido aparece** — o seletor de modo surge com 2+ telas; o campo de nome do `.zip`, ao marcar o check.
 - **Tema nativo** — segue automaticamente o tema claro/escuro do Figma (`themeColors`), e respeita `prefers-reduced-motion`.
+- **Preferências lembradas** — modo, compressão, sufixo de layout e `.zip` ficam salvos entre sessões (`clientStorage`); quem exporta sempre do mesmo jeito abre o plugin já configurado. Nome e versão não são lembrados de propósito: mudam a cada entrega.
 
 ## ⚙️ Instalação (modo desenvolvimento)
 
@@ -235,6 +236,7 @@ A comunicação é via `postMessage`:
 | Mensagem | Direção | Para quê |
 |----------|---------|----------|
 | `init` / `info` | UI ⇄ code | estado inicial e seleção atual |
+| `saveSettings` / `settings` | UI ⇄ code | preferências persistidas entre sessões (`clientStorage`) |
 | `export` | UI → code | inicia a exportação |
 | `measure` | UI → code | calcula tamanhos sem baixar nada |
 | `raster` / `rasterDone` | code → UI | bitmaps e tamanhos, um por tela |

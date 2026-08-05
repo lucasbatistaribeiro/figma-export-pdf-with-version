@@ -753,6 +753,70 @@
     return " (desktop+mobile)";
   }
 
+  // ---- Preferências persistidas (via clientStorage, no code.js) ----
+  // Guarda o que é escolha de trabalho, não conteúdo: modo, compressão,
+  // sufixo de layout e .zip. Nome e versão mudam a cada entrega.
+
+  function collectSettings() {
+    const checked = document.querySelector('input[name="mode"]:checked');
+    return {
+      mode: checked ? checked.value : "separate",
+      compress: compressSelect.value,
+      scale: parseFloat(scaleInput.value),
+      quality: parseInt(qualityInput.value, 10),
+      layout: layoutCheckbox.checked,
+      zip: zipCheckbox.checked,
+    };
+  }
+
+  let saveTimer = null;
+  function saveSettings() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      parent.postMessage(
+        { pluginMessage: { type: "saveSettings", settings: collectSettings() } },
+        "*"
+      );
+    }, 200);
+  }
+
+  // Aplica as preferências salvas na abertura, validando cada campo —
+  // um valor estranho no storage não pode quebrar a UI.
+  function applySettings(s) {
+    if (!s || typeof s !== "object") return;
+
+    if (s.mode === "single" || s.mode === "separate") {
+      const radio = document.querySelector(
+        'input[name="mode"][value="' + s.mode + '"]'
+      );
+      if (radio) radio.checked = true;
+      modeSeparateLabel.classList.toggle("on", s.mode === "separate");
+      modeSingleLabel.classList.toggle("on", s.mode === "single");
+    }
+
+    if (
+      typeof s.compress === "string" &&
+      (PRESETS.hasOwnProperty(s.compress) || s.compress === "custom")
+    ) {
+      compressSelect.value = s.compress;
+    }
+    if (compressSelect.value === "custom") {
+      if (typeof s.scale === "number" && isFinite(s.scale)) {
+        scaleInput.value = String(s.scale); // o range limita a min/max
+      }
+      if (typeof s.quality === "number" && isFinite(s.quality)) {
+        qualityInput.value = String(s.quality);
+      }
+    }
+
+    layoutCheckbox.checked = !!s.layout;
+    zipCheckbox.checked = !!s.zip;
+    zipNameWrapEl.style.display = s.zip ? "block" : "none";
+
+    updateCompressUI();
+    refresh();
+  }
+
   // ---- Formata a versão para o padrão "X.Y" ----
   // Trata major e minor como texto, não como número: "1.10" e "2.25" são
   // versões válidas e diferentes de "1.1" e "2.3" (parseFloat/toFixed as
@@ -1674,7 +1738,10 @@
     updatePreview();
   });
 
-  layoutCheckbox.addEventListener("change", updatePreview);
+  layoutCheckbox.addEventListener("change", () => {
+    updatePreview();
+    saveSettings();
+  });
 
   zipCheckbox.addEventListener("change", () => {
     zipNameWrapEl.style.display = zipCheckbox.checked ? "block" : "none";
@@ -1683,6 +1750,7 @@
       zipNameInput.value = currentName();
     }
     refresh();
+    saveSettings();
   });
 
   zipNameInput.addEventListener("input", updatePreview);
@@ -1701,6 +1769,7 @@
     if (compKey !== compressionKey()) invalidateCompression();
     updateCompressUI();
     refresh();
+    saveSettings();
   });
 
   [scaleInput, qualityInput].forEach((el) => {
@@ -1708,6 +1777,7 @@
       if (compKey !== compressionKey()) invalidateCompression();
       updateCompressUI();
       refresh();
+      saveSettings();
     });
   });
 
@@ -1716,6 +1786,7 @@
       modeSeparateLabel.classList.toggle("on", currentMode() === "separate");
       modeSingleLabel.classList.toggle("on", currentMode() === "single");
       refresh();
+      saveSettings();
     });
   });
 
@@ -1895,6 +1966,11 @@
   onmessage = (event) => {
     const msg = event.data.pluginMessage;
     if (!msg) return;
+
+    // Preferências salvas: chegam uma vez, logo após o init.
+    if (msg.type === "settings") {
+      applySettings(msg.settings);
+    }
 
     if (msg.type === "info") {
       docName = msg.docName || "documento";
