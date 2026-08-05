@@ -58,9 +58,44 @@ Projeto (desktop+mobile)-18.06.2026-v.1.0.pdf
 
 Quando as telas têm larguras mistas, o sufixo de layout vira `(desktop+mobile)`.
 
+## 🗜️ Compressão
+
+O PDF vetorial do Figma é ótimo em qualidade, mas pesado — especialmente com imagens embutidas. O campo **Compressão** troca qualidade por tamanho:
+
+| Opção | Resolução | Qualidade JPEG |
+|-------|-----------|----------------|
+| **Nenhuma** | vetorial (sem rasterizar) | — |
+| **Leve** | 144 DPI | 92% |
+| **Média** | 108 DPI | 82% |
+| **Máxima** | 72 DPI | 65% |
+| **Personalizada** | 36–288 DPI | 30–100% |
+
+Com qualquer opção diferente de *Nenhuma*, as telas são rasterizadas e embutidas como JPEG. **O texto deixa de ser selecionável** — é a troca em jogo. A redução costuma ficar entre 80% e 95% em telas com imagens.
+
+### Prévia do tamanho final
+
+Clique em **calcular tamanhos** para ver, antes de exportar, quanto cada arquivo vai pesar:
+
+```
+Telas selecionadas — 3 tela(s)              recalcular
+1  Home                        1,8 MB  89 KB
+2  Login                       410 KB  64 KB
+3  Dashboard                   3,0 MB  105 KB
+Total: 5,1 MB → 258 KB (−95%)
+```
+
+Os valores são **medidos, não estimados**: o plugin realmente exporta e monta os arquivos para calcular. Os nomes na pré-visualização também passam a mostrar o tamanho de cada um.
+
+Duas observações:
+
+- No modo *PDF único* **sem** compressão o total aparece com `≈`, porque o tamanho real só é conhecido depois da exportação (o Figma compartilha fontes entre as páginas). Com compressão, o número é exato.
+- Depois de calcular, exportar é instantâneo — os bitmaps ficam em cache e são reaproveitados. As medições do PDF vetorial (a parte lenta) sobrevivem à troca de preset de compressão.
+
 ## 🎯 Recursos
 
 - **Exportação em lote** — exporta todas as telas selecionadas de uma vez, como arquivos separados ou como um PDF único multipágina.
+- **Compressão opcional** — 3 presets + modo personalizado (resolução e qualidade JPEG), com aviso claro de que o texto deixa de ser selecionável.
+- **Prévia de tamanho medida** — mostra o peso final de cada arquivo e o total antes/depois, com o percentual de redução.
 - **Lista ordenável** — mostra as telas selecionadas com dimensões; no modo *PDF único* a ordem da lista define a ordem das páginas.
 - **Versão padronizada** — o campo aceita só números e ponto, e é normalizado para o formato `0.0` (ex.: `1` vira `1.0`).
 - **Nome editável** — por padrão usa o nome do documento do Figma, com link rápido para restaurá-lo (*"usar nome do Figma"*).
@@ -93,8 +128,10 @@ Como o plugin ainda não está publicado na Figma Community, você o roda localm
    - **Versão** — ex.: `1.0`
    - **Nome do arquivo** — editável (ou use o nome do Figma)
    - **Layout** — marque para adicionar `(desktop)`/`(mobile)`
+   - **Compressão** — deixe em *Nenhuma* para PDF vetorial, ou escolha um preset
 4. Confira a lista de telas (e a ordem, no modo *PDF único*) e o **Nome final** na pré-visualização.
-5. Clique em **Exportar** — os downloads começam automaticamente com os nomes montados.
+5. *(Opcional)* Clique em **calcular tamanhos** para ver o peso de cada arquivo antes de exportar.
+6. Clique em **Exportar** — os downloads começam automaticamente com os nomes montados.
 
 > Ao exportar vários arquivos, o navegador pode pedir permissão para "baixar vários arquivos". Aceite uma vez e os downloads seguintes passam direto.
 
@@ -129,6 +166,19 @@ A API de plugins do Figma exporta **um nó por vez**, e não existe função par
 4. **remove a página temporária** (em `finally`, mesmo se a exportação falhar).
 
 As telas originais não são movidas nem alteradas — só clonadas. A criação/remoção da página temporária aparece no histórico de desfazer (`Ctrl/Cmd+Z`).
+
+### Como a compressão é feita
+
+A API de plugins do Figma **não expõe qualidade nem compressão** no export de PDF (`ExportSettingsPDF` só aceita o formato), e plugins não podem carregar bibliotecas externas. O caminho é montar o PDF na mão:
+
+1. `code.js` exporta cada tela em **PNG** na escala escolhida (`constraint: { type: "SCALE" }`), limitando o bitmap a 8000 px por lado e 40 MP de área;
+2. `ui.html` decodifica o PNG num `<canvas>`, achata sobre branco (JPEG não tem transparência) e reencoda com `canvas.toBlob("image/jpeg", qualidade)`;
+3. `buildImagePdf()` escreve um PDF mínimo com o JPEG embutido **cru**, via filtro `DCTDecode` — o formato aceita os bytes do JPEG sem reencodar, então não há perda extra;
+4. o `MediaBox` de cada página usa o tamanho do frame em pontos, independente da escala do bitmap — é isso que define o DPI (`72 × escala`).
+
+Com compressão ligada, o **PDF único não precisa da página temporária**: o multipágina é montado direto a partir dos bitmaps, sem tocar no documento.
+
+O tamanho reportado na prévia é o tamanho real do arquivo montado, byte a byte — não uma estimativa.
 
 O plugin **não acessa a rede** (`networkAccess: ["none"]`) — tudo acontece localmente.
 
