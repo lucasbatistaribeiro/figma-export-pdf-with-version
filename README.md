@@ -2,7 +2,9 @@
 
 > Plugin do Figma para exportar uma ou várias telas em **PDF** já com **nome padronizado, data e versão** no nome do arquivo.
 
-Uma forma rápida de exportar telas em PDF nomeando os arquivos de maneira consistente — incluindo a data da exportação e o número da versão — direto do Figma, sem renomear nada à mão. Dá para exportar **um PDF por tela** ou juntar tudo em **um único PDF multipágina**.
+Uma forma rápida de exportar telas em PDF nomeando os arquivos de maneira consistente — incluindo a data da exportação e o número da versão — direto do Figma, sem renomear nada à mão.
+
+Além da nomeação, o plugin resolve o resto do caminho até a entrega: exporta **várias telas de uma vez** (arquivos separados ou um PDF multipágina), **comprime** quando o arquivo precisa ficar leve, **mostra o tamanho final antes de exportar** e ainda embala tudo num **`.zip`**.
 
 <p align="center">
   <img src="assets/screenshot.png" alt="Interface do plugin Exportar PDF com Versão" width="380" />
@@ -21,7 +23,7 @@ NomeDoArquivo (layout)-DD.MM.AAAA-v.X.Y.pdf
 Exemplo real:
 
 ```
-Home (desktop)-18.06.2026-v.1.0.pdf
+Home (desktop)-05.08.2026-v.1.0.pdf
 ```
 
 Cada parte do nome é montada a partir dos campos da interface:
@@ -30,7 +32,7 @@ Cada parte do nome é montada a partir dos campos da interface:
 |-------|--------|---------|
 | **Nome do arquivo** | Campo editável (ou nome do documento do Figma) | `Home` |
 | **Layout** *(opcional)* | Checkbox — detecta `(desktop)` ou `(mobile)` pela largura do frame | `(desktop)` |
-| **Data** | Data atual, formato `DD.MM.AAAA` | `18.06.2026` |
+| **Data** | Data atual, formato `DD.MM.AAAA` | `05.08.2026` |
 | **Versão** | Campo de versão, normalizado para `X.Y` | `v.1.0` |
 
 ## 🖼️ Exportando várias telas
@@ -42,8 +44,8 @@ Selecione quantas telas quiser e escolha o modo de exportação. O seletor **Com
 Gera um PDF por tela selecionada, todos com a mesma data e versão. Com **mais de uma** tela, o nome do frame entra no arquivo:
 
 ```
-Projeto-Home (desktop)-18.06.2026-v.1.0.pdf
-Projeto-Login (mobile)-18.06.2026-v.1.0.pdf
+Projeto-Home (desktop)-05.08.2026-v.1.0.pdf
+Projeto-Login (mobile)-05.08.2026-v.1.0.pdf
 ```
 
 Com apenas **uma** tela selecionada, o nome segue o formato original (sem o nome do frame). O sufixo de layout é calculado por tela, então cada arquivo recebe `(desktop)` ou `(mobile)` conforme a própria largura.
@@ -53,7 +55,7 @@ Com apenas **uma** tela selecionada, o nome segue o formato original (sem o nome
 Gera **um só arquivo** com uma página por tela, na ordem mostrada na lista (use as setas ▲▼ para reordenar):
 
 ```
-Projeto (desktop+mobile)-18.06.2026-v.1.0.pdf
+Projeto (desktop+mobile)-05.08.2026-v.1.0.pdf
 ```
 
 Quando as telas têm larguras mistas, o sufixo de layout vira `(desktop+mobile)`.
@@ -70,11 +72,13 @@ O PDF vetorial do Figma é ótimo em qualidade, mas pesado — especialmente com
 | **Máxima** | 72 DPI | 65% |
 | **Personalizada** | 36–288 DPI | 30–100% |
 
-Com qualquer opção diferente de *Nenhuma*, as telas são rasterizadas e embutidas como JPEG. **O texto deixa de ser selecionável** — é a troca em jogo. A redução costuma ficar entre 80% e 95% em telas com imagens.
+Com qualquer opção diferente de *Nenhuma*, as telas são rasterizadas e embutidas como JPEG. **O texto deixa de ser selecionável** — é a troca em jogo.
+
+Quanto isso reduz depende inteiramente do conteúdo: uma tela com fotos e áreas planas encolhe muito, uma tela densa de texto pequeno encolhe menos e perde nitidez mais rápido. Em vez de chutar, use **calcular tamanhos** e veja o número da sua tela.
 
 ### Prévia do tamanho final
 
-Clique em **calcular tamanhos** para ver, antes de exportar, quanto cada arquivo vai pesar:
+Clique em **calcular tamanhos** para ver, antes de exportar, quanto cada arquivo vai pesar (números do exemplo são ilustrativos):
 
 ```
 Telas selecionadas — 3 tela(s)              recalcular
@@ -84,27 +88,38 @@ Telas selecionadas — 3 tela(s)              recalcular
 Total: 5,1 MB → 258 KB (−95%)
 ```
 
-Os valores são **medidos, não estimados**: o plugin realmente exporta e monta os arquivos para calcular. Os nomes na pré-visualização também passam a mostrar o tamanho de cada um.
+Os números não são chute: o plugin exporta e monta os arquivos de verdade para medir. Os nomes na pré-visualização também passam a mostrar o tamanho de cada um.
 
-Duas observações:
+| O que está sendo medido | Como o número aparece |
+|-------------------------|-----------------------|
+| Um PDF por tela, com ou sem compressão | **exato** — o arquivo é montado para medir |
+| PDF único **com** compressão | **exato** — o multipágina é montado para medir |
+| PDF único **sem** compressão | `≈` soma dos PDFs individuais, porque o Figma compartilha fontes entre as páginas e o tamanho real só se sabe depois de exportar |
+| `.zip` | `até` — teto garantido, nunca maior (veja abaixo) |
 
-- No modo *PDF único* **sem** compressão o total aparece com `≈`, porque o tamanho real só é conhecido depois da exportação (o Figma compartilha fontes entre as páginas). Com compressão, o número é exato.
-- Depois de calcular, exportar é instantâneo — os bitmaps ficam em cache e são reaproveitados. As medições do PDF vetorial (a parte lenta) sobrevivem à troca de preset de compressão.
+Depois de calcular, exportar é instantâneo — os bitmaps ficam em cache e são reaproveitados. E as medições do PDF vetorial, que são a parte lenta, sobrevivem à troca de preset de compressão.
 
-## 🗜️ Compactar em .zip
+## 📦 Compactar em .zip
 
 Marcando **Compactar em .zip**, tudo vira **um único download** em vez de vários. Aparece um campo para o nome do pacote, já preenchido com o nome do arquivo:
 
 ```
-Entrega Sprint 12-05.08.2026-v.1.0.zip — até 5,1 MB
+Entrega Sprint 12-05.08.2026-v.1.0.zip — até 259 KB
   Projeto-Home (desktop)-05.08.2026-v.1.0.pdf — 89 KB
   Projeto-Login (mobile)-05.08.2026-v.1.0.pdf — 64 KB
   Projeto-Dashboard-05.08.2026-v.1.0.pdf — 105 KB
 ```
 
-Os PDFs ficam na raiz do `.zip` (sem pasta extra dentro — Windows e macOS já extraem para uma pasta com o nome do arquivo). Funciona com qualquer combinação: arquivos separados, PDF único, com ou sem compressão.
+Os PDFs ficam na raiz do `.zip` (sem pasta extra dentro — Windows e macOS já extraem para uma pasta com o nome do arquivo). Funciona com qualquer combinação: arquivos separados, PDF único, com ou sem compressão. Como vem tudo num arquivo só, o `.zip` também evita o aviso de *"baixar vários arquivos"* do navegador.
 
-O tamanho na prévia é um **limite superior**, não uma estimativa. O ganho do DEFLATE sobre um PDF varia demais para prever — medimos **91%** numa tela de UI com áreas planas e **0,2%** num bitmap ruidoso. Como o plugin só usa DEFLATE quando ele realmente ajuda, o `.zip` nunca passa do teto mostrado. O tamanho real aparece na mensagem final:
+O tamanho na prévia é um **limite superior**, não uma estimativa — e a diferença aqui é grande. O ganho do DEFLATE sobre um PDF varia demais para prever:
+
+| Conteúdo do bitmap | JPEG | Depois do DEFLATE |
+|--------------------|------|-------------------|
+| Tela de UI com áreas planas | 49.099 B | 4.314 B (**−91,2%**) |
+| Bitmap ruidoso, tipo foto | 912.218 B | 910.599 B (−0,2%) |
+
+Blocos idênticos numa UI plana geram padrões repetidos no stream do JPEG, e o DEFLATE os encontra; num bitmap ruidoso não há nada a encontrar. Como o plugin só usa DEFLATE quando ele reduz de fato, o `.zip` **nunca passa do teto mostrado** — só pode vir menor. O tamanho real aparece na mensagem final:
 
 ```
 .zip exportado com 3 arquivo(s) — 318 KB.
@@ -142,21 +157,30 @@ Os detalhes trazem o passo em que o plugin estava, a tela envolvida, a configura
 
 ## 🎯 Recursos
 
-- **Exportação em lote** — exporta todas as telas selecionadas de uma vez, como arquivos separados ou como um PDF único multipágina.
-- **Compressão opcional** — 3 presets + modo personalizado (resolução e qualidade JPEG), com aviso claro de que o texto deixa de ser selecionável.
-- **Pacote .zip** — junta tudo num único download, com nome próprio; DEFLATE nativo, sem bibliotecas externas.
-- **Prévia de tamanho medida** — mostra o peso final de cada arquivo e o total antes/depois, com o percentual de redução.
-- **Lista ordenável** — mostra as telas selecionadas com dimensões; no modo *PDF único* a ordem da lista define a ordem das páginas.
+**Nomeação**
+
 - **Versão padronizada** — o campo aceita só números e ponto, e é normalizado para o formato `0.0` (ex.: `1` vira `1.0`).
 - **Nome editável** — por padrão usa o nome do documento do Figma, com link rápido para restaurá-lo (*"usar nome do Figma"*).
 - **Sufixo de layout automático** — marcando a opção *Layout*, o plugin acrescenta `(desktop)` ou `(mobile)` com base na largura do frame (≥ 400px = desktop).
 - **Pré-visualização ao vivo** — o campo *Nome final* mostra exatamente como os arquivos serão salvos, atualizando em tempo real.
-- **Nomes sem colisão** — nomes de arquivo repetidos no mesmo lote recebem sufixo numérico automático, e caracteres inválidos (`/ \ : * ? " < > |`) são trocados por `-`.
+- **Nomes sem colisão** — nomes repetidos no mesmo lote recebem sufixo numérico automático, e caracteres inválidos (`/ \ : * ? " < > |`) são trocados por `-`.
+
+**Exportação**
+
+- **Lote** — exporta todas as telas selecionadas de uma vez, como arquivos separados ou como um PDF único multipágina.
+- **Lista ordenável** — mostra as telas selecionadas com dimensões; no modo *PDF único* a ordem da lista define a ordem das páginas.
+- **Compressão opcional** — 3 presets + modo personalizado (resolução e qualidade JPEG), com aviso claro de que o texto deixa de ser selecionável.
+- **Pacote .zip** — junta tudo num único download, com nome próprio; DEFLATE nativo, sem bibliotecas externas.
+- **Prévia de tamanho medida** — mostra o peso final de cada arquivo e o total antes/depois, com o percentual de redução.
+
+**Interface**
+
 - **Skeleton na exportação** — o formulário vira blocos pulsantes e o botão ganha spinner, contador `3/8` e barra de progresso, sem salto de layout.
 - **Erro com detalhes** — a animação é cancelada e um painel mostra a mensagem, a etapa, a tela envolvida, a configuração e o stack, com botão para copiar.
-- **Tema nativo** — segue automaticamente o tema claro/escuro do Figma (`themeColors`).
+- **Só o que faz sentido aparece** — o seletor de modo surge com 2+ telas; o campo de nome do `.zip`, ao marcar o check.
+- **Tema nativo** — segue automaticamente o tema claro/escuro do Figma (`themeColors`), e respeita `prefers-reduced-motion`.
 
-## 📦 Instalação (modo desenvolvimento)
+## ⚙️ Instalação (modo desenvolvimento)
 
 Como o plugin ainda não está publicado na Figma Community, você o roda localmente:
 
@@ -183,17 +207,17 @@ Como o plugin ainda não está publicado na Figma Community, você o roda localm
    - **Compactar em .zip** — marque para receber um único arquivo, e dê um nome a ele
 4. Confira a lista de telas (e a ordem, no modo *PDF único*) e o **Nome final** na pré-visualização.
 5. *(Opcional)* Clique em **calcular tamanhos** para ver o peso de cada arquivo antes de exportar.
-6. Clique em **Exportar** — os downloads começam automaticamente com os nomes montados.
+6. Clique em **Exportar** — o download começa automaticamente com os nomes montados.
 
-> Ao exportar vários arquivos, o navegador pode pedir permissão para "baixar vários arquivos". Aceite uma vez e os downloads seguintes passam direto.
+> Ao exportar vários arquivos soltos, o navegador pode pedir permissão para "baixar vários arquivos". Aceite uma vez e os seguintes passam direto — ou marque **Compactar em .zip**, que baixa um arquivo só e não dispara o aviso.
 
 ## 🗂️ Estrutura do projeto
 
 ```
 .
 ├── manifest.json     # Configuração do plugin (nome, id, entrypoints)
-├── code.js           # Lógica no contexto do Figma (exporta o frame em PDF)
-├── ui.html           # Interface + lógica de nomeação e download
+├── code.js           # Sandbox do Figma: lê a seleção, exporta PDF e bitmaps
+├── ui.html           # Interface + nomeação, gerador de PDF, gerador de .zip
 ├── assets/
 │   └── screenshot.png
 └── README.md
@@ -201,12 +225,27 @@ Como o plugin ainda não está publicado na Figma Community, você o roda localm
 
 ## 🛠️ Como funciona
 
-O plugin é dividido em dois contextos, como toda extensão do Figma:
+O plugin é dividido em dois contextos, como toda extensão do Figma. A divisão importa mais aqui do que no plugin original, porque **só a UI tem DOM** — e é o DOM (`<canvas>`, `CompressionStream`, `Blob`) que viabiliza compressão e `.zip` sem bibliotecas externas.
 
-- **[`code.js`](code.js)** roda no sandbox do Figma. Ele lê a seleção atual, exporta as telas com `exportAsync({ format: "PDF" })` e envia os bytes para a UI. Também escuta `selectionchange` para manter a interface sincronizada.
-- **[`ui.html`](ui.html)** é a interface (iframe). Ela monta os nomes dos arquivos, mostra a pré-visualização e, ao receber os bytes de cada PDF, cria um `Blob` e dispara o download no navegador — em fila, com um pequeno intervalo entre arquivos para o navegador não descartar downloads simultâneos.
+- **[`code.js`](code.js)** roda no sandbox do Figma, sem DOM. Lê a seleção, exporta as telas com `exportAsync` (em `PDF` ou em `PNG` numa escala, quando há compressão) e manda os bytes para a UI. Também escuta `selectionchange` para manter a interface sincronizada.
+- **[`ui.html`](ui.html)** é a interface (iframe). Monta os nomes, mostra a pré-visualização, converte bitmaps em JPEG, **escreve o PDF e o `.zip` byte a byte** e dispara os downloads — em fila, com um pequeno intervalo entre arquivos para o navegador não descartar downloads simultâneos.
 
-A comunicação entre os dois é feita via `postMessage` (`init`, `info`, `export`, `measure`, `progress`, `raster`, `rasterDone`, `download`, `finished`, `error`). O `error` carrega `message` e `details`; o `code.js` mantém um `currentStep` com a última operação em andamento, que entra nos detalhes junto com o stack.
+A comunicação é via `postMessage`:
+
+| Mensagem | Direção | Para quê |
+|----------|---------|----------|
+| `init` / `info` | UI ⇄ code | estado inicial e seleção atual |
+| `export` | UI → code | inicia a exportação |
+| `measure` | UI → code | calcula tamanhos sem baixar nada |
+| `raster` / `rasterDone` | code → UI | bitmaps e tamanhos, um por tela |
+| `progress` | code → UI | alimenta o contador e a barra do botão |
+| `download` | code → UI | PDF pronto (caminho sem compressão) |
+| `finished` | code → UI | fim do lote |
+| `error` | code → UI | `message` + `details` |
+
+O `error` carrega os detalhes técnicos: o `code.js` mantém um `currentStep` com a última operação em andamento (`exportando PDF de "Login" (FRAME)`, `rasterizando "Home" em 1.50x`), que entra no painel de erro junto com o stack.
+
+> **Requisitos de runtime.** Compressão e `.zip` usam APIs do Chromium disponíveis no Figma Desktop: `createImageBitmap`, `canvas.toBlob` e `CompressionStream`. O `.zip` tem fallback (grava sem compressão se `deflate-raw` não existir); a exportação **sem** compressão não depende de nenhuma delas.
 
 ### Como o PDF único é gerado
 
@@ -230,7 +269,7 @@ A API de plugins do Figma **não expõe qualidade nem compressão** no export de
 
 Com compressão ligada, o **PDF único não precisa da página temporária**: o multipágina é montado direto a partir dos bitmaps, sem tocar no documento.
 
-O tamanho reportado na prévia é o tamanho real do arquivo montado, byte a byte — não uma estimativa.
+Como o arquivo é montado inteiro em memória antes de baixar, o tamanho mostrado na prévia é o tamanho real dele, byte a byte.
 
 ### Como o .zip é feito
 
@@ -242,6 +281,18 @@ Mesma restrição da compressão — sem rede, sem bibliotecas — então o form
 4. o formato sem ZIP64 tem teto de 4 GB — o plugin verifica e falha com mensagem clara em vez de gerar um arquivo corrompido.
 
 O plugin **não acessa a rede** (`networkAccess: ["none"]`) — tudo acontece localmente.
+
+## 📜 Histórico
+
+O plugin começou exportando **um** frame com nome padronizado. Tudo abaixo entrou em 05.08.2026:
+
+| PR | O que entrou |
+|----|--------------|
+| [#1](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/1) | Exportação de múltiplas telas — arquivos separados ou PDF único multipágina, com lista ordenável e fila de downloads |
+| [#2](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/2) | Compressão opcional (presets + personalizado) e prévia de tamanho medida |
+| [#3](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/3) | Seletor de modo só aparece com 2+ telas selecionadas |
+| [#4](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/4) | Skeleton e botão animado durante a exportação, com painel de erro detalhado |
+| [#5](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/5) | Opção de compactar tudo em `.zip`, com nome próprio |
 
 ## 📄 Licença
 
