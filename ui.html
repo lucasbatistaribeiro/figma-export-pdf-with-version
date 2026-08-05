@@ -300,9 +300,190 @@
   }
   .msg.ok { color: var(--success); }
   .msg.info { color: var(--text-secondary); }
+
+  /* ---------- Estado de exportação: skeleton + botão animado ---------- */
+
+  /* Durante a exportação o formulário inteiro vira blocos cinza pulsantes.
+     Cada elemento marcado abaixo mantém a própria altura, então o layout
+     não salta ao entrar e sair do estado de carregamento. */
+  .loading #form {
+    pointer-events: none;
+    user-select: none;
+  }
+  .loading #form .label,
+  .loading #form .label-row,
+  .loading #form .modes,
+  .loading #form .version-wrap,
+  .loading #form .text-wrap,
+  .loading #form select,
+  .loading #form .check,
+  .loading #form .sliders,
+  .loading #form .note,
+  .loading #form .list,
+  .loading #form .empty,
+  .loading #form .totals,
+  .loading #form .preview {
+    border-color: transparent !important;
+    border-radius: 6px;
+    background-color: var(--input-bg);
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--hover-bg) 45%,
+      var(--hover-bg) 55%,
+      transparent 100%
+    );
+    background-size: 220% 100%;
+    background-repeat: no-repeat;
+    animation: skeleton-sweep 1.25s ease-in-out infinite;
+    box-shadow: none !important;
+  }
+  /* esconde o conteúdo sem alterar a caixa */
+  .loading #form .label > *,
+  .loading #form .label-row > *,
+  .loading #form .modes > *,
+  .loading #form .version-wrap > *,
+  .loading #form .text-wrap > *,
+  .loading #form select,
+  .loading #form .check > *,
+  .loading #form .sliders > *,
+  .loading #form .note,
+  .loading #form .list > *,
+  .loading #form .empty,
+  .loading #form .totals,
+  .loading #form .preview > * {
+    visibility: hidden;
+  }
+  .loading #form .label,
+  .loading #form .note,
+  .loading #form .empty,
+  .loading #form .totals,
+  .loading #form select {
+    color: transparent !important;
+  }
+  /* labels viram barras curtas, como num skeleton de verdade */
+  .loading #form .label { max-width: 132px; }
+  .loading #form .totals:empty { display: none; }
+
+  @keyframes skeleton-sweep {
+    0%   { background-position: 150% 0; }
+    100% { background-position: -50% 0; }
+  }
+
+  /* Botão: barra de progresso ao fundo + spinner */
+  button#export {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-progress {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0;
+    background: rgba(255, 255, 255, .25);
+    transition: width .3s ease;
+    pointer-events: none;
+  }
+  /* sem total conhecido (montagem/finalização): faixa correndo */
+  .btn-progress.indeterminate {
+    width: 45%;
+    transition: none;
+    animation: btn-slide 1.1s ease-in-out infinite;
+  }
+  @keyframes btn-slide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(222%); }
+  }
+
+  .btn-content {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .spinner {
+    display: none;
+    flex: none;
+    width: 13px;
+    height: 13px;
+    border: 2px solid rgba(255, 255, 255, .35);
+    border-top-color: var(--brand-text);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  .loading .spinner { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* o botão continua legível mesmo desabilitado durante a exportação */
+  .loading button#export:disabled { opacity: 1; }
+
+  /* Erro com detalhes */
+  .error-box {
+    margin-top: 10px;
+    border: 1px solid var(--danger);
+    border-radius: 6px;
+    padding: 10px;
+  }
+  .error-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .error-title {
+    flex: 1;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--danger);
+    line-height: 1.4;
+  }
+  .error-actions {
+    flex: none;
+    display: flex;
+    gap: 10px;
+  }
+  .error-details {
+    margin: 8px 0 0;
+    padding: 8px;
+    background: var(--input-bg);
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 132px;
+    overflow-y: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .loading #form .label,
+    .loading #form .label-row,
+    .loading #form .modes,
+    .loading #form .version-wrap,
+    .loading #form .text-wrap,
+    .loading #form select,
+    .loading #form .check,
+    .loading #form .sliders,
+    .loading #form .note,
+    .loading #form .list,
+    .loading #form .empty,
+    .loading #form .totals,
+    .loading #form .preview {
+      animation: none;
+      background-image: none;
+    }
+    .btn-progress.indeterminate { animation: none; width: 100%; }
+    .spinner { animation-duration: 2s; }
+  }
 </style>
 </head>
 <body>
+ <!-- tudo aqui dentro vira skeleton durante a exportação -->
+ <div id="form">
   <!-- só faz sentido com mais de uma tela selecionada -->
   <div class="field" id="modeField" style="display:none">
     <span class="label">Como exportar</span>
@@ -388,9 +569,28 @@
     <span class="label">Nome final</span>
     <div class="preview" id="preview">—</div>
   </div>
+ </div>
 
-  <button id="export" disabled>Exportar PDF</button>
-  <div class="msg" id="msg"></div>
+  <button id="export" disabled>
+    <span class="btn-progress" id="btnProgress"></span>
+    <span class="btn-content">
+      <span class="spinner" id="spinner" aria-hidden="true"></span>
+      <span id="exportLabel">Exportar PDF</span>
+    </span>
+  </button>
+
+  <div class="msg" id="msg" role="status"></div>
+
+  <div class="error-box" id="errorBox" style="display:none">
+    <div class="error-head">
+      <span class="error-title" id="errorTitle"></span>
+      <span class="error-actions">
+        <button class="link" id="errorToggle">ver detalhes</button>
+        <button class="link" id="errorCopy">copiar</button>
+      </span>
+    </div>
+    <pre class="error-details" id="errorDetails" style="display:none"></pre>
+  </div>
 
 <script>
   const versionInput = document.getElementById("version");
@@ -415,6 +615,13 @@
   const modeSeparateLabel = document.getElementById("modeSeparateLabel");
   const modeSingleLabel = document.getElementById("modeSingleLabel");
   const modeFieldEl = document.getElementById("modeField");
+  const exportLabelEl = document.getElementById("exportLabel");
+  const btnProgressEl = document.getElementById("btnProgress");
+  const errorBoxEl = document.getElementById("errorBox");
+  const errorTitleEl = document.getElementById("errorTitle");
+  const errorDetailsEl = document.getElementById("errorDetails");
+  const errorToggleEl = document.getElementById("errorToggle");
+  const errorCopyEl = document.getElementById("errorCopy");
 
   // scale = multiplicador de resolução (1 => 72 DPI); quality = 0..1 do JPEG.
   const PRESETS = {
@@ -437,6 +644,12 @@
   let pages = {};              // id -> { jpeg, pxW, pxH, ptW, ptH }
   let compKey = null;          // assinatura da compressão a que compSizes/pages se referem
   let clampedAny = false;      // alguma tela teve a resolução reduzida
+
+  // Tempo mínimo de animação: sem isso, uma tela pequena faz o skeleton
+  // aparecer e desaparecer num piscar, que lê como glitch.
+  const MIN_ANIMATION_MS = 450;
+  let busyStartedAt = 0;
+  let unbusyTimer = null;
 
   // Com uma tela só os dois modos dão o mesmo arquivo, e "separate" é o
   // caminho mais leve (não cria página temporária). A escolha do usuário fica
@@ -791,6 +1004,113 @@
     previewEl.innerHTML = html;
   }
 
+  // ---- Animação de exportação ----
+
+  function setExportLabel(text) {
+    exportLabelEl.textContent = text;
+  }
+
+  // Faixa correndo, para as etapas sem total conhecido.
+  function setIndeterminate() {
+    btnProgressEl.style.width = "";
+    btnProgressEl.classList.add("indeterminate");
+  }
+
+  function setProgress(done, total) {
+    if (!total || total <= 0 || done >= total) {
+      // terminou de contar, mas o Figma/PDF ainda está trabalhando
+      setIndeterminate();
+      return;
+    }
+    btnProgressEl.classList.remove("indeterminate");
+    btnProgressEl.style.width = Math.max(0, Math.min(100, (done / total) * 100)) + "%";
+  }
+
+  // Barra cheia no encerramento, antes de sair do estado de exportação.
+  function setProgressFull() {
+    btnProgressEl.classList.remove("indeterminate");
+    btnProgressEl.style.width = "100%";
+  }
+
+  // Liga/desliga o skeleton do formulário e a animação do botão.
+  function setBusy(on) {
+    if (unbusyTimer) {
+      clearTimeout(unbusyTimer);
+      unbusyTimer = null;
+    }
+
+    if (on) {
+      busy = true;
+      busyStartedAt = Date.now();
+      document.body.classList.add("loading");
+      setIndeterminate();
+      updateButton();
+      return;
+    }
+
+    // segura a animação até o tempo mínimo, para não piscar
+    const elapsed = Date.now() - busyStartedAt;
+    const rest = Math.max(0, MIN_ANIMATION_MS - elapsed);
+
+    const stop = () => {
+      unbusyTimer = null;
+      busy = false;
+      document.body.classList.remove("loading");
+      btnProgressEl.classList.remove("indeterminate");
+      btnProgressEl.style.width = "";
+      refresh();
+    };
+
+    if (rest === 0) stop();
+    else unbusyTimer = setTimeout(stop, rest);
+  }
+
+  // Junta contexto + mensagem + stack num bloco copiável.
+  function errorDetails(e, context) {
+    const lines = (context || []).slice();
+    if (e && e.message) lines.push("Mensagem: " + e.message);
+    if (e && e.stack) lines.push("", String(e.stack));
+    else if (e && !e.message) lines.push("Erro: " + String(e));
+    return lines.join("\n");
+  }
+
+  function clearError() {
+    errorBoxEl.style.display = "none";
+    errorDetailsEl.style.display = "none";
+    errorDetailsEl.textContent = "";
+    errorToggleEl.textContent = "ver detalhes";
+  }
+
+  function showError(message, details) {
+    msgEl.textContent = "";
+    msgEl.className = "msg";
+    errorTitleEl.textContent = message || "Erro na exportação.";
+    errorDetailsEl.textContent = details || "Sem detalhes adicionais.";
+    errorDetailsEl.style.display = "none";
+    errorToggleEl.textContent = "ver detalhes";
+    errorBoxEl.style.display = "block";
+  }
+
+  errorToggleEl.addEventListener("click", () => {
+    const open = errorDetailsEl.style.display !== "none";
+    errorDetailsEl.style.display = open ? "none" : "block";
+    errorToggleEl.textContent = open ? "ver detalhes" : "ocultar detalhes";
+  });
+
+  errorCopyEl.addEventListener("click", async () => {
+    const text = errorTitleEl.textContent + "\n\n" + errorDetailsEl.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      errorCopyEl.textContent = "copiado";
+    } catch (e) {
+      // clipboard bloqueado no iframe: mostra os detalhes para copiar à mão
+      errorDetailsEl.style.display = "block";
+      errorToggleEl.textContent = "ocultar detalhes";
+      errorCopyEl.textContent = "selecione e copie";
+    }
+    setTimeout(() => (errorCopyEl.textContent = "copiar"), 2000);
+  });
+
   function updateCompressUI() {
     const isCustom = compressSelect.value === "custom";
     slidersEl.style.display = isCustom ? "block" : "none";
@@ -823,12 +1143,11 @@
 
     if (busy) return; // o texto durante a exportação é controlado pelo progresso
     if (n === 0) {
-      exportBtn.textContent = "Exportar PDF";
+      setExportLabel("Exportar PDF");
     } else if (currentMode() === "single") {
-      exportBtn.textContent =
-        n === 1 ? "Exportar PDF" : `Exportar PDF único (${n} páginas)`;
+      setExportLabel(n === 1 ? "Exportar PDF" : `Exportar PDF único (${n} páginas)`);
     } else {
-      exportBtn.textContent = n === 1 ? "Exportar PDF" : `Exportar ${n} PDFs`;
+      setExportLabel(n === 1 ? "Exportar PDF" : `Exportar ${n} PDFs`);
     }
   }
 
@@ -1022,7 +1341,8 @@
     if (!pendingFinish || draining || queue.length) return;
     const info = pendingFinish;
     pendingFinish = null;
-    busy = false;
+
+    setProgressFull();
 
     if (info.mode === "single") {
       msgEl.textContent = `PDF exportado com ${info.total} página(s).`;
@@ -1031,7 +1351,7 @@
         info.total === 1 ? "PDF exportado." : `${info.total} PDFs exportados.`;
     }
     msgEl.className = "msg ok";
-    refresh();
+    setBusy(false); // já chama refresh() ao encerrar a animação
   }
 
   // ---- Eventos da interface ----
@@ -1125,15 +1445,16 @@
     const c = compression();
     const items = buildItems();
 
-    busy = true;
-    exportBtn.disabled = true;
-    measureBtn.disabled = true;
-    exportBtn.textContent = "Exportando…";
     msgEl.textContent = "";
     msgEl.className = "msg";
+    clearError();
 
     exportItems = items;
     exportMode = currentMode();
+
+    // entra no estado animado: formulário em skeleton, botão com spinner
+    setBusy(true);
+    setExportLabel("Exportando…");
 
     // Se os tamanhos já foram calculados com estas configurações, os bitmaps
     // estão em cache: monta o PDF direto, sem rasterizar de novo.
@@ -1166,11 +1487,23 @@
   let exportItems = [];      // nomes de arquivo do export em andamento
   let exportMode = "separate";
 
-  function fail(message) {
+  // Erro: cancela a animação na hora (sem esperar o tempo mínimo) e mostra a
+  // mensagem com os detalhes técnicos recolhidos.
+  function fail(message, details) {
+    if (unbusyTimer) {
+      clearTimeout(unbusyTimer);
+      unbusyTimer = null;
+    }
     busy = false;
     measuring = false;
-    msgEl.textContent = message;
-    msgEl.className = "msg";
+    pendingFinish = null;
+    queue.length = 0;
+
+    document.body.classList.remove("loading");
+    btnProgressEl.classList.remove("indeterminate");
+    btnProgressEl.style.width = "";
+
+    showError(message, details);
     refresh();
   }
 
@@ -1273,16 +1606,27 @@
       }
       if (!busy) return;
       const label = msg.label ? " — " + msg.label : "";
-      exportBtn.textContent =
+      setExportLabel(
         msg.total > 1
           ? `Exportando ${msg.done}/${msg.total}${label}`
-          : "Exportando…";
+          : "Exportando…"
+      );
+      setProgress(msg.done, msg.total);
     }
 
     if (msg.type === "raster") {
       chain = chain
         .then(() => handleRaster(msg))
-        .catch((e) => fail("Erro ao processar a imagem: " + e.message));
+        .catch((e) =>
+          fail(
+            "Erro ao processar a imagem de “" + msg.name + "”.",
+            errorDetails(e, [
+              "Tela: " + msg.name + " (" + msg.id + ")",
+              "Bitmap: " + msg.ptW + "×" + msg.ptH + " pt, escala " + msg.scale,
+              "Etapa: " + (msg.purpose === "measure" ? "cálculo de tamanho" : "exportação"),
+            ])
+          )
+        );
     }
 
     if (msg.type === "rasterDone") {
@@ -1292,7 +1636,14 @@
           compKey = pendingCompKey;
           refresh();
         } else {
-          finishCompressedExport();
+          try {
+            finishCompressedExport();
+          } catch (e) {
+            fail(
+              "Erro ao montar o PDF.",
+              errorDetails(e, ["Telas: " + nodes.length, "Modo: " + exportMode])
+            );
+          }
         }
       });
     }
@@ -1308,7 +1659,7 @@
     }
 
     if (msg.type === "error") {
-      fail(msg.message);
+      fail(msg.message, msg.details);
     }
   };
 

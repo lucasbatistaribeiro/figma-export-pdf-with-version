@@ -91,6 +91,36 @@ Duas observações:
 - No modo *PDF único* **sem** compressão o total aparece com `≈`, porque o tamanho real só é conhecido depois da exportação (o Figma compartilha fontes entre as páginas). Com compressão, o número é exato.
 - Depois de calcular, exportar é instantâneo — os bitmaps ficam em cache e são reaproveitados. As medições do PDF vetorial (a parte lenta) sobrevivem à troca de preset de compressão.
 
+## ⏳ Durante a exportação
+
+Ao clicar em **Exportar**, o formulário inteiro vira *skeleton* — blocos cinza com uma varredura de luz — e o botão ganha spinner, contador e barra de progresso:
+
+```
+[ ◌  Exportando 2/3 — Login        ▓▓▓▓▓▓▓░░░░░░░ ]
+```
+
+- Os blocos preservam a altura original, então **não há salto de layout** ao entrar e sair do estado de carregamento.
+- A barra é **determinada** quando o total é conhecido (`2/3`) e vira uma faixa correndo nas etapas sem contagem — montagem das páginas, geração do PDF final.
+- A animação dura até a exportação concluir, com um piso de 450 ms para que um export instantâneo não pisque na tela.
+- `prefers-reduced-motion` desliga as animações e mantém só os blocos estáticos.
+
+### Quando dá erro
+
+A animação é cancelada **na hora** (sem esperar o piso), o formulário volta ao normal e aparece um painel com a mensagem e os detalhes técnicos recolhidos:
+
+```
+Erro ao processar a imagem de "Home".        ver detalhes  copiar
+┌────────────────────────────────────────────────────────┐
+│ Tela: Home (1:1)                                       │
+│ Bitmap: 1440×900 pt, escala 1.5                        │
+│ Etapa: exportação                                      │
+│ Mensagem: The source image could not be decoded.       │
+│ Error: ... (stack)                                     │
+└────────────────────────────────────────────────────────┘
+```
+
+Os detalhes trazem o passo em que o plugin estava, a tela envolvida, a configuração em uso e o stack — é o que dá para colar num relato de bug. O botão **copiar** manda tudo para a área de transferência (se o iframe bloquear o clipboard, o painel abre os detalhes para seleção manual).
+
 ## 🎯 Recursos
 
 - **Exportação em lote** — exporta todas as telas selecionadas de uma vez, como arquivos separados ou como um PDF único multipágina.
@@ -102,7 +132,8 @@ Duas observações:
 - **Sufixo de layout automático** — marcando a opção *Layout*, o plugin acrescenta `(desktop)` ou `(mobile)` com base na largura do frame (≥ 400px = desktop).
 - **Pré-visualização ao vivo** — o campo *Nome final* mostra exatamente como os arquivos serão salvos, atualizando em tempo real.
 - **Nomes sem colisão** — nomes de arquivo repetidos no mesmo lote recebem sufixo numérico automático, e caracteres inválidos (`/ \ : * ? " < > |`) são trocados por `-`.
-- **Progresso** — o botão mostra `Exportando 3/8 — Nome da tela` durante o lote.
+- **Skeleton na exportação** — o formulário vira blocos pulsantes e o botão ganha spinner, contador `3/8` e barra de progresso, sem salto de layout.
+- **Erro com detalhes** — a animação é cancelada e um painel mostra a mensagem, a etapa, a tela envolvida, a configuração e o stack, com botão para copiar.
 - **Tema nativo** — segue automaticamente o tema claro/escuro do Figma (`themeColors`).
 
 ## 📦 Instalação (modo desenvolvimento)
@@ -154,7 +185,7 @@ O plugin é dividido em dois contextos, como toda extensão do Figma:
 - **[`code.js`](code.js)** roda no sandbox do Figma. Ele lê a seleção atual, exporta as telas com `exportAsync({ format: "PDF" })` e envia os bytes para a UI. Também escuta `selectionchange` para manter a interface sincronizada.
 - **[`ui.html`](ui.html)** é a interface (iframe). Ela monta os nomes dos arquivos, mostra a pré-visualização e, ao receber os bytes de cada PDF, cria um `Blob` e dispara o download no navegador — em fila, com um pequeno intervalo entre arquivos para o navegador não descartar downloads simultâneos.
 
-A comunicação entre os dois é feita via `postMessage` (`init`, `info`, `export`, `progress`, `download`, `finished`, `error`).
+A comunicação entre os dois é feita via `postMessage` (`init`, `info`, `export`, `measure`, `progress`, `raster`, `rasterDone`, `download`, `finished`, `error`). O `error` carrega `message` e `details`; o `code.js` mantém um `currentStep` com a última operação em andamento, que entra nos detalhes junto com o stack.
 
 ### Como o PDF único é gerado
 
