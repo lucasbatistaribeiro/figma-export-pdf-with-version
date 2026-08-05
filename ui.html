@@ -118,13 +118,6 @@
     gap: 8px;
     margin-bottom: 6px;
   }
-  .restore-link {
-    font-weight: 500;
-    color: var(--brand);
-    cursor: pointer;
-    text-decoration: none;
-  }
-  .restore-link:hover { text-decoration: underline; }
 
   /* Seletor de modo */
   .modes {
@@ -136,6 +129,7 @@
     padding: 3px;
   }
   .modes label {
+    position: relative;
     flex: 1;
     text-align: center;
     padding: 7px 4px;
@@ -145,7 +139,17 @@
     user-select: none;
     line-height: 1.3;
   }
-  .modes input { display: none; }
+  /* escondido visualmente, mas ainda focável pelo teclado
+     (display:none tiraria os radios da navegação por Tab/setas) */
+  .modes input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .modes label:has(input:focus-visible) {
+    outline: 2px solid var(--brand);
+    outline-offset: 1px;
+  }
   .modes label.on {
     background: var(--bg);
     color: var(--text);
@@ -514,7 +518,7 @@
   <div class="field">
     <div class="label-row">
       <label class="label" for="fileName" style="margin-bottom:0">Nome do arquivo</label>
-      <a class="restore-link" id="restoreName">usar nome do Figma</a>
+      <button type="button" class="link" id="restoreName">usar nome do Figma</button>
     </div>
     <div class="text-wrap">
       <input id="fileName" type="text" placeholder="Nome do arquivo" />
@@ -583,7 +587,7 @@
     <div id="zipNameWrap" style="display:none; margin-top:10px">
       <div class="label-row">
         <label class="label" for="zipName" style="margin-bottom:0">Nome do .zip</label>
-        <a class="restore-link" id="restoreZipName">usar nome do arquivo</a>
+        <button type="button" class="link" id="restoreZipName">usar nome do arquivo</button>
       </div>
       <div class="text-wrap">
         <input id="zipName" type="text" placeholder="Nome do .zip" />
