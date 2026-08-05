@@ -282,6 +282,25 @@ figma.ui.onmessage = async (msg) => {
     return;
   }
 
+  if (msg.type === "thumbs") {
+    // Miniaturas da lista: PNG pequeno por tela, sob demanda da UI.
+    const ids = Array.isArray(msg.ids) ? msg.ids : [];
+    for (const id of ids) {
+      const node = await figma.getNodeByIdAsync(id);
+      if (!node || node.removed || !canExport(node)) continue;
+      try {
+        const bytes = await node.exportAsync({
+          format: "PNG",
+          constraint: { type: "HEIGHT", value: 48 },
+        });
+        figma.ui.postMessage({ type: "thumb", id, bytes });
+      } catch (e) {
+        // miniatura é decoração: falha silenciosa, a lista fica sem imagem
+      }
+    }
+    return;
+  }
+
   if (msg.type === "saveSettings") {
     try {
       await figma.clientStorage.setAsync("settings", msg.settings);

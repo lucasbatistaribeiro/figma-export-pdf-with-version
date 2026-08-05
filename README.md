@@ -169,7 +169,7 @@ Os detalhes trazem o passo em que o plugin estava, a tela envolvida, a configura
 **Exportação**
 
 - **Lote** — exporta todas as telas selecionadas de uma vez, como arquivos separados ou como um PDF único multipágina.
-- **Lista ordenável** — mostra as telas selecionadas com dimensões; no modo *PDF único* a ordem da lista define a ordem das páginas.
+- **Lista ordenável** — mostra as telas selecionadas com miniatura e dimensões; no modo *PDF único* a ordem da lista define a ordem das páginas.
 - **Compressão opcional** — 3 presets + modo personalizado (resolução e qualidade JPEG), com aviso claro de que o texto deixa de ser selecionável.
 - **Pacote .zip** — junta tudo num único download, com nome próprio; DEFLATE nativo, sem bibliotecas externas.
 - **Prévia de tamanho medida** — mostra o peso final de cada arquivo e o total antes/depois, com o percentual de redução.
@@ -238,6 +238,7 @@ A comunicação é via `postMessage`:
 |----------|---------|----------|
 | `init` / `info` | UI ⇄ code | estado inicial e seleção atual |
 | `saveSettings` / `settings` | UI ⇄ code | preferências persistidas entre sessões (`clientStorage`) |
+| `thumbs` / `thumb` | UI ⇄ code | miniaturas das telas para a lista (PNG pequeno, sob demanda) |
 | `export` | UI → code | inicia a exportação |
 | `measure` | UI → code | calcula tamanhos sem baixar nada |
 | `raster` / `rasterDone` | code → UI | bitmaps e tamanhos, um por tela |
