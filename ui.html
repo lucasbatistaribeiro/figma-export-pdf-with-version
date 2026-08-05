@@ -303,7 +303,8 @@
 </style>
 </head>
 <body>
-  <div class="field">
+  <!-- só faz sentido com mais de uma tela selecionada -->
+  <div class="field" id="modeField" style="display:none">
     <span class="label">Como exportar</span>
     <div class="modes" id="modes">
       <label id="modeSeparateLabel" class="on">
@@ -413,6 +414,7 @@
   const totalsEl = document.getElementById("totals");
   const modeSeparateLabel = document.getElementById("modeSeparateLabel");
   const modeSingleLabel = document.getElementById("modeSingleLabel");
+  const modeFieldEl = document.getElementById("modeField");
 
   // scale = multiplicador de resolução (1 => 72 DPI); quality = 0..1 do JPEG.
   const PRESETS = {
@@ -436,7 +438,11 @@
   let compKey = null;          // assinatura da compressão a que compSizes/pages se referem
   let clampedAny = false;      // alguma tela teve a resolução reduzida
 
+  // Com uma tela só os dois modos dão o mesmo arquivo, e "separate" é o
+  // caminho mais leve (não cria página temporária). A escolha do usuário fica
+  // guardada no radio para quando a seleção voltar a ter várias telas.
   function currentMode() {
+    if (nodes.length <= 1) return "separate";
     const checked = document.querySelector('input[name="mode"]:checked');
     return checked ? checked.value : "separate";
   }
@@ -946,6 +952,7 @@
   }
 
   function refresh() {
+    modeFieldEl.style.display = nodes.length > 1 ? "block" : "none";
     renderList();
     renderTotals();
     updatePreview();
