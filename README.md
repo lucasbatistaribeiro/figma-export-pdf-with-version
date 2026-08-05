@@ -31,7 +31,7 @@ Cada parte do nome é montada a partir dos campos da interface:
 | Parte | Origem | Exemplo |
 |-------|--------|---------|
 | **Nome do arquivo** | Campo editável (ou nome do documento do Figma) | `Home` |
-| **Layout** *(opcional)* | Checkbox — detecta `(desktop)` ou `(mobile)` pela largura do frame | `(desktop)` |
+| **Sufixo de layout** *(opcional)* | Checkbox — detecta `(desktop)` ou `(mobile)` pela largura do frame | `(desktop)` |
 | **Data** | Data atual, formato `DD.MM.AAAA` | `05.08.2026` |
 | **Versão** | Campo de versão, normalizado para `X.Y` | `v.1.0` |
 
@@ -161,7 +161,7 @@ Os detalhes trazem o passo em que o plugin estava, a tela envolvida, a configura
 
 - **Versão padronizada** — o campo aceita só números e ponto, e é normalizado para o formato `0.0` (ex.: `1` vira `1.0`).
 - **Nome editável** — por padrão usa o nome do documento do Figma, com link rápido para restaurá-lo (*"usar nome do Figma"*).
-- **Sufixo de layout automático** — marcando a opção *Layout*, o plugin acrescenta `(desktop)` ou `(mobile)` com base na largura do frame (≥ 400px = desktop).
+- **Sufixo de layout automático** — marcando *Sufixo de layout*, o plugin acrescenta `(desktop)` ou `(mobile)` ao nome com base na largura do frame (≥ 400px = desktop).
 - **Pré-visualização ao vivo** — o campo *Nome final* mostra exatamente como os arquivos serão salvos, atualizando em tempo real.
 - **Nomes sem colisão** — nomes repetidos no mesmo lote recebem sufixo numérico automático, e caracteres inválidos (`/ \ : * ? " < > |`) são trocados por `-`.
 
@@ -202,7 +202,7 @@ Como o plugin ainda não está publicado na Figma Community, você o roda localm
 4. Ajuste a nomeação, conferindo o resultado no **Nome final**, logo abaixo:
    - **Nome do arquivo** — editável (ou use o nome do Figma)
    - **Versão** — ex.: `1.0`
-   - **Layout** — marque para adicionar `(desktop)`/`(mobile)`
+   - **Sufixo de layout** — marque para adicionar `(desktop)`/`(mobile)` ao nome
 5. Escolha as opções de saída:
    - **Compressão** — deixe em *Nenhuma* para PDF vetorial, ou escolha um preset
    - **Compactar em .zip** — marque para receber um único arquivo, e dê um nome a ele
