@@ -96,6 +96,8 @@
   .preview .row + .row { margin-top: 6px; }
   .preview .more { color: var(--text-secondary); }
   .preview .size { color: var(--text-secondary); font-weight: 400; }
+  .preview .row.zip .pname { font-weight: 600; }
+  .preview .row.inner { padding-left: 12px; }
 
   /* Campo de texto genérico (nome do arquivo) */
   .text-wrap {
@@ -556,6 +558,24 @@
   </div>
 
   <div class="field">
+    <label class="check">
+      <input type="checkbox" id="zip" />
+      <span class="check-text">Compactar em .zip</span>
+      <span class="check-hint">— um único download</span>
+    </label>
+
+    <div id="zipNameWrap" style="display:none; margin-top:10px">
+      <div class="label-row">
+        <label class="label" for="zipName" style="margin-bottom:0">Nome do .zip</label>
+        <a class="restore-link" id="restoreZipName">usar nome do arquivo</a>
+      </div>
+      <div class="text-wrap">
+        <input id="zipName" type="text" placeholder="Nome do .zip" />
+      </div>
+    </div>
+  </div>
+
+  <div class="field">
     <div class="label-row">
       <span class="label" style="margin-bottom:0">Telas selecionadas <span class="hint" id="selCount">0</span></span>
       <button class="link" id="measure" disabled>calcular tamanhos</button>
@@ -622,6 +642,10 @@
   const errorDetailsEl = document.getElementById("errorDetails");
   const errorToggleEl = document.getElementById("errorToggle");
   const errorCopyEl = document.getElementById("errorCopy");
+  const zipCheckbox = document.getElementById("zip");
+  const zipNameWrapEl = document.getElementById("zipNameWrap");
+  const zipNameInput = document.getElementById("zipName");
+  const restoreZipNameLink = document.getElementById("restoreZipName");
 
   // scale = multiplicador de resolução (1 => 72 DPI); quality = 0..1 do JPEG.
   const PRESETS = {
@@ -781,6 +805,20 @@
     });
   }
 
+  function zipEnabled() {
+    return zipCheckbox.checked;
+  }
+
+  // Nome base do .zip: campo próprio, caindo no nome do arquivo.
+  function zipBaseName() {
+    const v = zipNameInput.value.trim();
+    return v || currentName();
+  }
+
+  function zipFileName() {
+    return sanitize(zipBaseName()) + `-${todayStr()}-v.${currentVersion()}.zip`;
+  }
+
   // Lista final de arquivos: [{ id, fileName }]
   function buildItems() {
     if (currentMode() === "single") {
@@ -876,6 +914,184 @@
     );
 
     return { chunks, size: len };
+  }
+
+  // ================= ZIP =================
+  // Plugins não acessam a rede nem carregam bibliotecas, então o .zip é
+  // escrito à mão. O DEFLATE vem do CompressionStream nativo; sem ele, os
+  // arquivos entram armazenados (método 0), que é um .zip igualmente válido.
+
+  function concatBytes(parts) {
+    let total = 0;
+    for (const p of parts) total += p.length;
+    const out = new Uint8Array(total);
+    let at = 0;
+    for (const p of parts) {
+      out.set(p, at);
+      at += p.length;
+    }
+    return out;
+  }
+
+  let crcTable = null;
+  function crc32(buf) {
+    if (!crcTable) {
+      crcTable = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) {
+        let c = i;
+        for (let k = 0; k < 8; k++) {
+          c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+        }
+        crcTable[i] = c >>> 0;
+      }
+    }
+    let c = 0xffffffff;
+    for (let i = 0; i < buf.length; i++) {
+      c = crcTable[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
+    }
+    return (c ^ 0xffffffff) >>> 0;
+  }
+
+  // Data/hora no formato MS-DOS que o .zip usa.
+  function dosDateTime(d) {
+    const year = Math.max(1980, d.getFullYear());
+    return {
+      time: (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1),
+      date: ((year - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate(),
+    };
+  }
+
+  async function tryDeflate(bytes) {
+    if (typeof CompressionStream === "undefined") return null;
+    try {
+      const stream = new Blob([bytes])
+        .stream()
+        .pipeThrough(new CompressionStream("deflate-raw"));
+      const buf = await new Response(stream).arrayBuffer();
+      return new Uint8Array(buf);
+    } catch (e) {
+      return null; // sem deflate-raw: armazena sem compressão
+    }
+  }
+
+  const ZIP_LIMIT = 0xfffffffe; // acima disso seria necessário ZIP64
+
+  // entries: [{ name, parts }] -> { chunks, size }
+  async function buildZip(entries) {
+    const enc = new TextEncoder();
+    const chunks = [];
+    let len = 0;
+    const push = (arr) => {
+      chunks.push(arr);
+      len += arr.length;
+    };
+
+    const stamp = dosDateTime(new Date());
+    const central = [];
+
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      setExportLabel(`Compactando ${i + 1}/${entries.length}…`);
+
+      const nameBytes = enc.encode(entry.name);
+      const raw = concatBytes(entry.parts);
+      const crc = crc32(raw);
+
+      let method = 0;
+      let data = raw;
+      const deflated = await tryDeflate(raw);
+      // PDF já é comprimido: só usa o deflate quando ele realmente ajuda
+      if (deflated && deflated.length < raw.length) {
+        method = 8;
+        data = deflated;
+      }
+
+      if (raw.length > ZIP_LIMIT || len + data.length > ZIP_LIMIT) {
+        throw new Error(
+          "O .zip passaria de 4 GB, limite do formato sem ZIP64. " +
+            "Exporte em lotes menores ou aumente a compressão."
+        );
+      }
+
+      const offset = len;
+      const lfh = new DataView(new ArrayBuffer(30));
+      lfh.setUint32(0, 0x04034b50, true); // assinatura
+      lfh.setUint16(4, 20, true); // versão necessária
+      lfh.setUint16(6, 0x0800, true); // bit 11: nome em UTF-8
+      lfh.setUint16(8, method, true);
+      lfh.setUint16(10, stamp.time, true);
+      lfh.setUint16(12, stamp.date, true);
+      lfh.setUint32(14, crc, true);
+      lfh.setUint32(18, data.length, true);
+      lfh.setUint32(22, raw.length, true);
+      lfh.setUint16(26, nameBytes.length, true);
+      lfh.setUint16(28, 0, true); // sem campo extra
+
+      push(new Uint8Array(lfh.buffer));
+      push(nameBytes);
+      push(data);
+
+      central.push({
+        nameBytes,
+        crc,
+        method,
+        compSize: data.length,
+        size: raw.length,
+        offset,
+      });
+    }
+
+    const cdStart = len;
+    for (const c of central) {
+      const cdh = new DataView(new ArrayBuffer(46));
+      cdh.setUint32(0, 0x02014b50, true);
+      cdh.setUint16(4, 20, true); // versão de origem
+      cdh.setUint16(6, 20, true); // versão necessária
+      cdh.setUint16(8, 0x0800, true);
+      cdh.setUint16(10, c.method, true);
+      cdh.setUint16(12, stamp.time, true);
+      cdh.setUint16(14, stamp.date, true);
+      cdh.setUint32(16, c.crc, true);
+      cdh.setUint32(20, c.compSize, true);
+      cdh.setUint32(24, c.size, true);
+      cdh.setUint16(28, c.nameBytes.length, true);
+      cdh.setUint16(30, 0, true); // extra
+      cdh.setUint16(32, 0, true); // comentário
+      cdh.setUint16(34, 0, true); // disco inicial
+      cdh.setUint16(36, 0, true); // atributos internos
+      cdh.setUint32(38, 0, true); // atributos externos
+      cdh.setUint32(42, c.offset, true);
+
+      push(new Uint8Array(cdh.buffer));
+      push(c.nameBytes);
+    }
+    const cdSize = len - cdStart;
+
+    const eocd = new DataView(new ArrayBuffer(22));
+    eocd.setUint32(0, 0x06054b50, true);
+    eocd.setUint16(4, 0, true); // número do disco
+    eocd.setUint16(6, 0, true); // disco do diretório central
+    eocd.setUint16(8, central.length, true);
+    eocd.setUint16(10, central.length, true);
+    eocd.setUint32(12, cdSize, true);
+    eocd.setUint32(16, cdStart, true);
+    eocd.setUint16(20, 0, true); // sem comentário
+    push(new Uint8Array(eocd.buffer));
+
+    return { chunks, size: len };
+  }
+
+  // Teto do .zip antes de montar. Não é estimativa: o ganho do deflate sobre
+  // um PDF varia demais para prever — medimos 91% numa tela de UI plana e
+  // 0,2% num bitmap ruidoso. Como o formato só entra deflate quando ele
+  // ajuda, soma + overhead é um limite superior garantido.
+  function zipUpperBound(fileSizeList, names) {
+    let total = 22; // fim do diretório central
+    for (let i = 0; i < fileSizeList.length; i++) {
+      const nameLen = new TextEncoder().encode(names[i] || "").length;
+      total += 30 + 46 + nameLen * 2 + fileSizeList[i];
+    }
+    return total;
   }
 
   // PNG (bytes do Figma) -> JPEG comprimido, sobre fundo branco.
@@ -981,19 +1197,35 @@
     const shown = items.slice(0, 3);
 
     const approx = sizesAreApprox() ? "≈ " : "";
-    let html = shown
+    const zipped = zipEnabled();
+    const rowClass = zipped ? "row inner" : "row";
+
+    let html = "";
+
+    // com .zip, o arquivo baixado é ele; os PDFs viram o conteúdo
+    if (zipped) {
+      let zipSize = "";
+      if (finalSizes) {
+        const max = zipUpperBound(finalSizes, items.map((it) => it.fileName));
+        zipSize = ' <span class="size">— até ' + formatBytes(max) + "</span>";
+      }
+      html +=
+        '<div class="row zip">' + renderName(zipFileName()) + zipSize + "</div>";
+    }
+
+    html += shown
       .map((it, i) => {
         const size =
           finalSizes && finalSizes[i] != null
             ? ' <span class="size">— ' + approx + formatBytes(finalSizes[i]) + "</span>"
             : "";
-        return '<div class="row">' + renderName(it.fileName) + size + "</div>";
+        return '<div class="' + rowClass + '">' + renderName(it.fileName) + size + "</div>";
       })
       .join("");
 
     if (items.length > shown.length) {
       html +=
-        '<div class="row more">+ ' +
+        '<div class="' + rowClass + ' more">+ ' +
         (items.length - shown.length) +
         " arquivo(s)</div>";
     }
@@ -1144,6 +1376,12 @@
     if (busy) return; // o texto durante a exportação é controlado pelo progresso
     if (n === 0) {
       setExportLabel("Exportar PDF");
+    } else if (zipEnabled()) {
+      setExportLabel(
+        n === 1 || currentMode() === "single"
+          ? "Exportar .zip"
+          : `Exportar .zip (${n} PDFs)`
+      );
     } else if (currentMode() === "single") {
       setExportLabel(n === 1 ? "Exportar PDF" : `Exportar PDF único (${n} páginas)`);
     } else {
@@ -1309,7 +1547,10 @@
   }
 
   function saveFile(item) {
-    const blob = new Blob(item.parts, { type: "application/pdf" });
+    const type = /\.zip$/i.test(item.fileName)
+      ? "application/zip"
+      : "application/pdf";
+    const blob = new Blob(item.parts, { type });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -1337,6 +1578,51 @@
     drain();
   }
 
+  // Quando o export atual é .zip, os arquivos são acumulados aqui em vez de
+  // baixados um a um; o .zip só é montado no fim.
+  let zipEntries = null;
+
+  function deliver(parts, fileName) {
+    if (zipEntries) zipEntries.push({ name: fileName, parts });
+    else enqueue(parts, fileName);
+  }
+
+  // Fecha a exportação: monta o .zip se for o caso e libera a mensagem final.
+  function completeExport(info) {
+    if (!zipEntries) {
+      pendingFinish = info;
+      flushFinish();
+      return;
+    }
+
+    const entries = zipEntries;
+    zipEntries = null;
+    info.zipped = true;
+    info.files = entries.length;
+
+    setExportLabel("Compactando…");
+    setIndeterminate();
+
+    buildZip(entries)
+      .then((zip) => {
+        enqueue(zip.chunks, zipFileName());
+        info.zipSize = zip.size;
+        pendingFinish = info;
+        flushFinish();
+      })
+      .catch((e) =>
+        fail(
+          "Não foi possível gerar o .zip.",
+          errorDetails(e, [
+            "Arquivos: " + entries.length,
+            "Nome: " + zipFileName(),
+            "DEFLATE nativo: " +
+              (typeof CompressionStream === "undefined" ? "indisponível" : "disponível"),
+          ])
+        )
+      );
+  }
+
   function flushFinish() {
     if (!pendingFinish || draining || queue.length) return;
     const info = pendingFinish;
@@ -1344,7 +1630,11 @@
 
     setProgressFull();
 
-    if (info.mode === "single") {
+    if (info.zipped) {
+      msgEl.textContent =
+        `.zip exportado com ${info.files} arquivo(s)` +
+        (info.zipSize ? ` — ${formatBytes(info.zipSize)}.` : ".");
+    } else if (info.mode === "single") {
       msgEl.textContent = `PDF exportado com ${info.total} página(s).`;
     } else {
       msgEl.textContent =
@@ -1363,6 +1653,22 @@
   });
 
   layoutCheckbox.addEventListener("change", updatePreview);
+
+  zipCheckbox.addEventListener("change", () => {
+    zipNameWrapEl.style.display = zipCheckbox.checked ? "block" : "none";
+    // ao ligar, parte do nome do arquivo em vez de deixar o campo vazio
+    if (zipCheckbox.checked && !zipNameInput.value.trim()) {
+      zipNameInput.value = currentName();
+    }
+    refresh();
+  });
+
+  zipNameInput.addEventListener("input", updatePreview);
+
+  restoreZipNameLink.addEventListener("click", () => {
+    zipNameInput.value = currentName();
+    updatePreview();
+  });
 
   compressSelect.addEventListener("change", () => {
     if (compressSelect.value === "custom") {
@@ -1451,6 +1757,7 @@
 
     exportItems = items;
     exportMode = currentMode();
+    zipEntries = zipEnabled() ? [] : null;
 
     // entra no estado animado: formulário em skeleton, botão com spinner
     setBusy(true);
@@ -1498,6 +1805,7 @@
     measuring = false;
     pendingFinish = null;
     queue.length = 0;
+    zipEntries = null;
 
     document.body.classList.remove("loading");
     btnProgressEl.classList.remove("indeterminate");
@@ -1537,10 +1845,11 @@
       return;
     }
 
+    let info;
     if (exportMode === "single") {
       const pdf = buildImagePdf(list);
-      enqueue(pdf.chunks, exportItems[0].fileName);
-      pendingFinish = { mode: "single", total: list.length };
+      deliver(pdf.chunks, exportItems[0].fileName);
+      info = { mode: "single", total: list.length };
     } else {
       const byId = {};
       exportItems.forEach((it) => (byId[it.id] = it.fileName));
@@ -1549,15 +1858,15 @@
         const page = pages[n.id];
         if (!page) continue;
         const pdf = buildImagePdf([page]);
-        enqueue(pdf.chunks, byId[n.id] || sanitize(n.name) + ".pdf");
+        deliver(pdf.chunks, byId[n.id] || sanitize(n.name) + ".pdf");
         count++;
       }
-      pendingFinish = { mode: "separate", total: count };
+      info = { mode: "separate", total: count };
     }
 
     // os tamanhos agora são conhecidos; guarda para a prévia
     compKey = compressionKey();
-    flushFinish();
+    completeExport(info);
   }
 
   // ---- Mensagens vindas do code.js ----
@@ -1650,12 +1959,11 @@
 
     // PDF pronto vindo do code.js (caminho sem compressão)
     if (msg.type === "download") {
-      enqueue([msg.bytes], msg.fileName);
+      deliver([msg.bytes], msg.fileName);
     }
 
     if (msg.type === "finished") {
-      pendingFinish = { mode: msg.mode, total: msg.total };
-      flushFinish();
+      completeExport({ mode: msg.mode, total: msg.total });
     }
 
     if (msg.type === "error") {

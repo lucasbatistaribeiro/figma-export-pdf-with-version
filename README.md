@@ -91,6 +91,25 @@ Duas observações:
 - No modo *PDF único* **sem** compressão o total aparece com `≈`, porque o tamanho real só é conhecido depois da exportação (o Figma compartilha fontes entre as páginas). Com compressão, o número é exato.
 - Depois de calcular, exportar é instantâneo — os bitmaps ficam em cache e são reaproveitados. As medições do PDF vetorial (a parte lenta) sobrevivem à troca de preset de compressão.
 
+## 🗜️ Compactar em .zip
+
+Marcando **Compactar em .zip**, tudo vira **um único download** em vez de vários. Aparece um campo para o nome do pacote, já preenchido com o nome do arquivo:
+
+```
+Entrega Sprint 12-05.08.2026-v.1.0.zip — até 5,1 MB
+  Projeto-Home (desktop)-05.08.2026-v.1.0.pdf — 89 KB
+  Projeto-Login (mobile)-05.08.2026-v.1.0.pdf — 64 KB
+  Projeto-Dashboard-05.08.2026-v.1.0.pdf — 105 KB
+```
+
+Os PDFs ficam na raiz do `.zip` (sem pasta extra dentro — Windows e macOS já extraem para uma pasta com o nome do arquivo). Funciona com qualquer combinação: arquivos separados, PDF único, com ou sem compressão.
+
+O tamanho na prévia é um **limite superior**, não uma estimativa. O ganho do DEFLATE sobre um PDF varia demais para prever — medimos **91%** numa tela de UI com áreas planas e **0,2%** num bitmap ruidoso. Como o plugin só usa DEFLATE quando ele realmente ajuda, o `.zip` nunca passa do teto mostrado. O tamanho real aparece na mensagem final:
+
+```
+.zip exportado com 3 arquivo(s) — 318 KB.
+```
+
 ## ⏳ Durante a exportação
 
 Ao clicar em **Exportar**, o formulário inteiro vira *skeleton* — blocos cinza com uma varredura de luz — e o botão ganha spinner, contador e barra de progresso:
@@ -125,6 +144,7 @@ Os detalhes trazem o passo em que o plugin estava, a tela envolvida, a configura
 
 - **Exportação em lote** — exporta todas as telas selecionadas de uma vez, como arquivos separados ou como um PDF único multipágina.
 - **Compressão opcional** — 3 presets + modo personalizado (resolução e qualidade JPEG), com aviso claro de que o texto deixa de ser selecionável.
+- **Pacote .zip** — junta tudo num único download, com nome próprio; DEFLATE nativo, sem bibliotecas externas.
 - **Prévia de tamanho medida** — mostra o peso final de cada arquivo e o total antes/depois, com o percentual de redução.
 - **Lista ordenável** — mostra as telas selecionadas com dimensões; no modo *PDF único* a ordem da lista define a ordem das páginas.
 - **Versão padronizada** — o campo aceita só números e ponto, e é normalizado para o formato `0.0` (ex.: `1` vira `1.0`).
@@ -160,6 +180,7 @@ Como o plugin ainda não está publicado na Figma Community, você o roda localm
    - **Nome do arquivo** — editável (ou use o nome do Figma)
    - **Layout** — marque para adicionar `(desktop)`/`(mobile)`
    - **Compressão** — deixe em *Nenhuma* para PDF vetorial, ou escolha um preset
+   - **Compactar em .zip** — marque para receber um único arquivo, e dê um nome a ele
 4. Confira a lista de telas (e a ordem, no modo *PDF único*) e o **Nome final** na pré-visualização.
 5. *(Opcional)* Clique em **calcular tamanhos** para ver o peso de cada arquivo antes de exportar.
 6. Clique em **Exportar** — os downloads começam automaticamente com os nomes montados.
@@ -210,6 +231,15 @@ A API de plugins do Figma **não expõe qualidade nem compressão** no export de
 Com compressão ligada, o **PDF único não precisa da página temporária**: o multipágina é montado direto a partir dos bitmaps, sem tocar no documento.
 
 O tamanho reportado na prévia é o tamanho real do arquivo montado, byte a byte — não uma estimativa.
+
+### Como o .zip é feito
+
+Mesma restrição da compressão — sem rede, sem bibliotecas — então o formato é escrito à mão em [`ui.html`](ui.html):
+
+1. `crc32()` calcula o CRC de cada arquivo (tabela própria, conferida contra o `zlib` do Node);
+2. `tryDeflate()` comprime via **`CompressionStream("deflate-raw")`** nativo. Se o navegador não tiver `deflate-raw`, ou se o deflate não reduzir nada, a entrada vai **armazenada** (método 0) — um `.zip` igualmente válido;
+3. `buildZip()` escreve os *local file headers*, o *central directory* e o *end of central directory*, com o bit 11 de flags ligado para nomes em UTF-8 (acentos sobrevivem);
+4. o formato sem ZIP64 tem teto de 4 GB — o plugin verifica e falha com mensagem clara em vez de gerar um arquivo corrompido.
 
 O plugin **não acessa a rede** (`networkAccess: ["none"]`) — tudo acontece localmente.
 
