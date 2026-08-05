@@ -9,6 +9,7 @@
     --text-secondary: var(--figma-color-text-secondary, #8c8c8c);
     --border: var(--figma-color-border, #e6e6e6);
     --input-bg: var(--figma-color-bg-secondary, #f5f5f5);
+    --hover-bg: var(--figma-color-bg-hover, #f0f0f0);
     --brand: var(--figma-color-bg-brand, #0d99ff);
     --brand-text: var(--figma-color-text-onbrand, #fff);
     --danger: var(--figma-color-text-danger, #e03e3e);
@@ -56,7 +57,7 @@
     user-select: none;
   }
 
-  input {
+  input[type="text"] {
     flex: 1;
     border: none;
     outline: none;
@@ -78,6 +79,8 @@
   }
   .preview .pname { color: var(--text); font-weight: 500; }
   .preview .suffix { color: var(--brand); font-weight: 600; }
+  .preview .row + .row { margin-top: 6px; }
+  .preview .more { color: var(--text-secondary); }
 
   /* Campo de texto genérico (nome do arquivo) */
   .text-wrap {
@@ -105,6 +108,39 @@
   }
   .restore-link:hover { text-decoration: underline; }
 
+  /* Seletor de modo */
+  .modes {
+    display: flex;
+    gap: 6px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px;
+  }
+  .modes label {
+    flex: 1;
+    text-align: center;
+    padding: 7px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    user-select: none;
+    line-height: 1.3;
+  }
+  .modes input { display: none; }
+  .modes label.on {
+    background: var(--bg);
+    color: var(--text);
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0,0,0,.12);
+  }
+  .modes .sub {
+    display: block;
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-secondary);
+  }
+
   /* Checkbox de layout */
   .check {
     display: flex;
@@ -117,19 +153,57 @@
   .check .check-text { font-weight: 600; }
   .check .check-hint { color: var(--text-secondary); font-weight: 400; }
 
-  .selection {
-    font-size: 11px;
-    color: var(--text-secondary);
-    margin-bottom: 16px;
+  /* Lista de telas selecionadas */
+  .list {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    max-height: 132px;
+    overflow-y: auto;
+  }
+  .list:empty { display: none; }
+  .item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    padding: 6px 8px;
   }
-  .dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--danger); flex: none;
+  .item + .item { border-top: 1px solid var(--border); }
+  .item .idx {
+    flex: none;
+    width: 16px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
   }
-  .dot.ok { background: #14ae5c; }
+  .item .nm {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .item .dim { flex: none; color: var(--text-secondary); font-size: 10px; }
+  .item .move {
+    flex: none;
+    display: flex;
+    gap: 2px;
+  }
+  .item .move button {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .item .move button:hover:not(:disabled) { background: var(--hover-bg); color: var(--text); }
+  .empty {
+    padding: 10px;
+    color: var(--text-secondary);
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+  }
 
   button {
     width: 100%;
@@ -152,9 +226,26 @@
     color: var(--danger);
   }
   .msg.ok { color: #14ae5c; }
+  .msg.info { color: var(--text-secondary); }
 </style>
 </head>
 <body>
+  <div class="field">
+    <span class="label">Como exportar</span>
+    <div class="modes" id="modes">
+      <label id="modeSeparateLabel" class="on">
+        <input type="radio" name="mode" value="separate" checked />
+        Arquivos separados
+        <span class="sub">1 PDF por tela</span>
+      </label>
+      <label id="modeSingleLabel">
+        <input type="radio" name="mode" value="single" />
+        PDF único
+        <span class="sub">1 página por tela</span>
+      </label>
+    </div>
+  </div>
+
   <div class="field">
     <label class="label" for="version">
       Versão <span class="hint">— formato 0.0</span>
@@ -184,13 +275,17 @@
   </div>
 
   <div class="field">
-    <span class="label">Nome final</span>
-    <div class="preview" id="preview">—</div>
+    <div class="label-row">
+      <span class="label" style="margin-bottom:0">Telas selecionadas</span>
+      <span class="hint" id="selCount">0</span>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="empty" id="empty">Selecione uma ou mais telas no canvas.</div>
   </div>
 
-  <div class="selection" id="selection">
-    <span class="dot" id="dot"></span>
-    <span id="selText">Nenhum frame selecionado</span>
+  <div class="field">
+    <span class="label">Nome final</span>
+    <div class="preview" id="preview">—</div>
   </div>
 
   <button id="export" disabled>Exportar PDF</button>
@@ -204,13 +299,21 @@
   const previewEl = document.getElementById("preview");
   const exportBtn = document.getElementById("export");
   const msgEl = document.getElementById("msg");
-  const dotEl = document.getElementById("dot");
-  const selTextEl = document.getElementById("selText");
+  const listEl = document.getElementById("list");
+  const emptyEl = document.getElementById("empty");
+  const selCountEl = document.getElementById("selCount");
+  const modeSeparateLabel = document.getElementById("modeSeparateLabel");
+  const modeSingleLabel = document.getElementById("modeSingleLabel");
 
   let docName = "documento";
-  let hasSelection = false;
-  let selectionWidth = null;
+  let nodes = [];          // telas selecionadas, na ordem de exportação
   let nameInitialized = false;
+  let busy = false;
+
+  function currentMode() {
+    const checked = document.querySelector('input[name="mode"]:checked');
+    return checked ? checked.value : "separate";
+  }
 
   // Nome base: o que o usuário digitou, ou o nome do Figma como fallback.
   function currentName() {
@@ -218,14 +321,31 @@
     return v || docName;
   }
 
-  // Sufixo de layout. Marcado + frame selecionado -> valor real;
-  // marcado sem seleção -> indicação "(desktop/mobile)".
-  function layoutSuffix() {
+  // Categoria de layout pela largura (>= 400px = desktop).
+  function layoutOf(node) {
+    if (node.width == null) return null;
+    return node.width >= 400 ? "desktop" : "mobile";
+  }
+
+  // Sufixo de layout de uma tela específica.
+  function layoutSuffix(node) {
     if (!layoutCheckbox.checked) return "";
-    if (hasSelection && selectionWidth != null) {
-      return selectionWidth >= 400 ? " (desktop)" : " (mobile)";
+    const kind = node ? layoutOf(node) : null;
+    return kind ? " (" + kind + ")" : " (desktop/mobile)";
+  }
+
+  // Sufixo do PDF único: usa a categoria comum ou marca as duas.
+  function layoutSuffixCombined() {
+    if (!layoutCheckbox.checked) return "";
+    if (nodes.length === 0) return " (desktop/mobile)";
+    const kinds = [];
+    for (const n of nodes) {
+      const k = layoutOf(n);
+      if (k && kinds.indexOf(k) === -1) kinds.push(k);
     }
-    return " (desktop/mobile)";
+    if (kinds.length === 1) return " (" + kinds[0] + ")";
+    if (kinds.length === 0) return " (desktop/mobile)";
+    return " (desktop+mobile)";
   }
 
   // ---- Formata a versão para o padrão "0.0" ----
@@ -249,37 +369,241 @@
   }
 
   function escapeHtml(s) {
-    return s.replace(/[&<>"']/g, (c) => ({
+    return String(s).replace(/[&<>"']/g, (c) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
     }[c]));
   }
 
-  // Monta o nome final completo (usado também no export).
-  function buildFileName() {
-    return `${currentName()}${layoutSuffix()}-${todayStr()}-v.${currentVersion()}.pdf`;
+  // Remove caracteres proibidos em nomes de arquivo.
+  function sanitize(s) {
+    return String(s)
+      .replace(/[\\/:*?"<>|]/g, "-")
+      .replace(/\s+/g, " ")
+      .replace(/^\.+/, "")
+      .trim();
+  }
+
+  function tail() {
+    return `-${todayStr()}-v.${currentVersion()}.pdf`;
+  }
+
+  // Evita dois arquivos com o mesmo nome no mesmo lote.
+  function dedupe(names) {
+    const seen = {};
+    return names.map((name) => {
+      if (!seen[name]) {
+        seen[name] = 1;
+        return name;
+      }
+      seen[name]++;
+      return name.replace(/\.pdf$/i, "") + `-${seen[name]}.pdf`;
+    });
+  }
+
+  // Lista final de arquivos: [{ id, fileName }]
+  function buildItems() {
+    if (currentMode() === "single") {
+      const name = sanitize(currentName()) + layoutSuffixCombined() + tail();
+      return [{ id: nodes.length ? nodes[0].id : null, fileName: name }];
+    }
+
+    // Com uma única tela, o nome segue o formato original (sem o nome do frame).
+    const withScreenName = nodes.length > 1;
+    const names = nodes.map((n) => {
+      const base = sanitize(currentName());
+      const screen = withScreenName ? "-" + sanitize(n.name) : "";
+      return base + screen + layoutSuffix(n) + tail();
+    });
+    const unique = dedupe(names);
+    return nodes.map((n, i) => ({ id: n.id, fileName: unique[i] }));
+  }
+
+  // Pinta um nome de arquivo destacando o sufixo de layout.
+  function renderName(name) {
+    const m = name.match(/^(.*?)( \((?:desktop|mobile|desktop\/mobile|desktop\+mobile)\))(.*)$/);
+    if (!m) return '<span class="pname">' + escapeHtml(name) + "</span>";
+    return (
+      '<span class="pname">' + escapeHtml(m[1]) + "</span>" +
+      '<span class="suffix">' + escapeHtml(m[2]) + "</span>" +
+      '<span class="pname">' + escapeHtml(m[3]) + "</span>"
+    );
   }
 
   function updatePreview() {
-    const base = escapeHtml(currentName());
-    const suffix = escapeHtml(layoutSuffix());
-    const tail = escapeHtml(`-${todayStr()}-v.${currentVersion()}.pdf`);
-    previewEl.innerHTML =
-      '<span class="pname">' + base + "</span>" +
-      (suffix ? '<span class="suffix">' + suffix + "</span>" : "") +
-      '<span class="pname">' + tail + "</span>";
+    if (nodes.length === 0) {
+      const name = sanitize(currentName()) + (layoutCheckbox.checked ? " (desktop/mobile)" : "") + tail();
+      previewEl.innerHTML = '<div class="row">' + renderName(name) + "</div>";
+      return;
+    }
+
+    const items = buildItems();
+    const shown = items.slice(0, 3);
+    let html = shown
+      .map((it) => '<div class="row">' + renderName(it.fileName) + "</div>")
+      .join("");
+
+    if (items.length > shown.length) {
+      html += '<div class="row more">+ ' + (items.length - shown.length) + " arquivo(s)</div>";
+    }
+    if (currentMode() === "single") {
+      html += '<div class="row more">' + nodes.length + " página(s) em um único PDF</div>";
+    }
+    previewEl.innerHTML = html;
   }
 
-  // Nome do arquivo editável
+  function updateButton() {
+    const n = nodes.length;
+    exportBtn.disabled = busy || n === 0;
+
+    if (busy) return; // o texto durante a exportação é controlado pelo progresso
+    if (n === 0) {
+      exportBtn.textContent = "Exportar PDF";
+    } else if (currentMode() === "single") {
+      exportBtn.textContent = n === 1 ? "Exportar PDF" : `Exportar PDF único (${n} páginas)`;
+    } else {
+      exportBtn.textContent = n === 1 ? "Exportar PDF" : `Exportar ${n} PDFs`;
+    }
+  }
+
+  function move(index, delta) {
+    const target = index + delta;
+    if (target < 0 || target >= nodes.length) return;
+    const tmp = nodes[index];
+    nodes[index] = nodes[target];
+    nodes[target] = tmp;
+    renderList();
+    updatePreview();
+  }
+
+  function renderList() {
+    selCountEl.textContent = nodes.length === 0 ? "0" : nodes.length + " tela(s)";
+    emptyEl.style.display = nodes.length === 0 ? "block" : "none";
+    listEl.innerHTML = "";
+
+    const reorderable = currentMode() === "single" && nodes.length > 1;
+
+    nodes.forEach((n, i) => {
+      const row = document.createElement("div");
+      row.className = "item";
+
+      const idx = document.createElement("span");
+      idx.className = "idx";
+      idx.textContent = i + 1;
+
+      const nm = document.createElement("span");
+      nm.className = "nm";
+      nm.textContent = n.name;
+      nm.title = n.name;
+
+      const dim = document.createElement("span");
+      dim.className = "dim";
+      dim.textContent = n.width != null && n.height != null ? n.width + "×" + n.height : "";
+
+      row.appendChild(idx);
+      row.appendChild(nm);
+      row.appendChild(dim);
+
+      if (reorderable) {
+        const move_ = document.createElement("span");
+        move_.className = "move";
+
+        const up = document.createElement("button");
+        up.textContent = "▲";
+        up.title = "Mover para cima";
+        up.disabled = i === 0;
+        up.addEventListener("click", () => move(i, -1));
+
+        const down = document.createElement("button");
+        down.textContent = "▼";
+        down.title = "Mover para baixo";
+        down.disabled = i === nodes.length - 1;
+        down.addEventListener("click", () => move(i, 1));
+
+        move_.appendChild(up);
+        move_.appendChild(down);
+        row.appendChild(move_);
+      }
+
+      listEl.appendChild(row);
+    });
+  }
+
+  function refresh() {
+    renderList();
+    updatePreview();
+    updateButton();
+  }
+
+  // ---- Fila de downloads ----
+  // O navegador pode ignorar vários downloads disparados ao mesmo tempo,
+  // então cada arquivo é salvo com um pequeno intervalo.
+  const queue = [];
+  let draining = false;
+  let pendingFinish = null;
+
+  function sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+  }
+
+  function saveFile(item) {
+    const blob = new Blob([item.bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = item.fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  async function drain() {
+    if (draining) return;
+    draining = true;
+    while (queue.length) {
+      const item = queue.shift();
+      saveFile(item);
+      if (queue.length) await sleep(350);
+    }
+    draining = false;
+    flushFinish();
+  }
+
+  function flushFinish() {
+    if (!pendingFinish || draining || queue.length) return;
+    const info = pendingFinish;
+    pendingFinish = null;
+    busy = false;
+
+    if (info.mode === "single") {
+      msgEl.textContent = `PDF exportado com ${info.total} página(s).`;
+    } else {
+      msgEl.textContent =
+        info.total === 1
+          ? "PDF exportado."
+          : `${info.total} PDFs exportados.`;
+    }
+    msgEl.className = "msg ok";
+    updateButton();
+  }
+
+  // ---- Eventos da interface ----
   fileNameInput.addEventListener("input", updatePreview);
 
-  // Restaura o nome original do Figma
   restoreLink.addEventListener("click", () => {
     fileNameInput.value = docName;
     updatePreview();
   });
 
-  // Checkbox de layout
   layoutCheckbox.addEventListener("change", updatePreview);
+
+  document.querySelectorAll('input[name="mode"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      modeSeparateLabel.classList.toggle("on", currentMode() === "separate");
+      modeSingleLabel.classList.toggle("on", currentMode() === "single");
+      refresh();
+    });
+  });
 
   // Enquanto digita: limpa caracteres inválidos
   versionInput.addEventListener("input", () => {
@@ -294,16 +618,34 @@
   });
 
   exportBtn.addEventListener("click", () => {
+    if (busy || nodes.length === 0) return;
+
     versionInput.value = currentVersion();
     updatePreview();
+
+    busy = true;
+    exportBtn.disabled = true;
+    exportBtn.textContent = "Exportando…";
     msgEl.textContent = "";
     msgEl.className = "msg";
+
+    const mode = currentMode();
+    const items =
+      mode === "single"
+        ? [{ id: null, fileName: buildItems()[0].fileName }]
+        : buildItems();
+
     parent.postMessage(
       {
         pluginMessage: {
           type: "export",
+          mode,
           version: currentVersion(),
-          fileName: buildFileName(),
+          fileName: items[0].fileName,
+          // no modo "single" o code.js usa apenas os ids, na ordem enviada
+          items: mode === "single"
+            ? nodes.map((n) => ({ id: n.id }))
+            : items,
         },
       },
       "*"
@@ -317,8 +659,19 @@
 
     if (msg.type === "info") {
       docName = msg.docName || "documento";
-      hasSelection = msg.count > 0;
-      selectionWidth = typeof msg.selectionWidth === "number" ? msg.selectionWidth : null;
+
+      // Mantém a ordem escolhida pelo usuário se a seleção não mudou.
+      const incoming = msg.nodes || [];
+      const sameSet =
+        incoming.length === nodes.length &&
+        incoming.every((n) => nodes.some((old) => old.id === n.id));
+
+      if (sameSet) {
+        // atualiza nome/tamanho preservando a ordem atual
+        nodes = nodes.map((old) => incoming.find((n) => n.id === old.id) || old);
+      } else {
+        nodes = incoming.slice();
+      }
 
       // Preenche o campo de nome com o nome do Figma na primeira carga,
       // sem sobrescrever uma edição já feita pelo usuário.
@@ -327,38 +680,38 @@
         nameInitialized = true;
       }
 
-      dotEl.className = "dot" + (hasSelection ? " ok" : "");
-      if (hasSelection) {
-        selTextEl.textContent =
-          msg.count === 1
-            ? `Selecionado: ${msg.selectionName}`
-            : `${msg.count} itens — será exportado: ${msg.selectionName}`;
-      } else {
-        selTextEl.textContent = "Nenhum frame selecionado";
+      if (msg.selectionCount > 0 && nodes.length === 0) {
+        msgEl.textContent = "A seleção atual não pode ser exportada em PDF.";
+        msgEl.className = "msg";
       }
 
-      exportBtn.disabled = !hasSelection;
-      updatePreview();
+      refresh();
+    }
+
+    if (msg.type === "progress") {
+      if (!busy) return;
+      const label = msg.label ? " — " + msg.label : "";
+      exportBtn.textContent =
+        msg.total > 1
+          ? `Exportando ${msg.done}/${msg.total}${label}`
+          : "Exportando…";
     }
 
     if (msg.type === "download") {
-      const blob = new Blob([msg.bytes], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = msg.fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      queue.push({ bytes: msg.bytes, fileName: msg.fileName });
+      drain();
+    }
 
-      msgEl.textContent = "PDF exportado: " + msg.fileName;
-      msgEl.className = "msg ok";
+    if (msg.type === "finished") {
+      pendingFinish = { mode: msg.mode, total: msg.total };
+      flushFinish();
     }
 
     if (msg.type === "error") {
+      busy = false;
       msgEl.textContent = msg.message;
       msgEl.className = "msg";
+      updateButton();
     }
   };
 
