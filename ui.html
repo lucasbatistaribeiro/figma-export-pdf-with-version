@@ -13,6 +13,7 @@
     --brand: var(--figma-color-bg-brand, #0d99ff);
     --brand-text: var(--figma-color-text-onbrand, #fff);
     --danger: var(--figma-color-text-danger, #e03e3e);
+    --success: #14ae5c;
   }
 
   * { box-sizing: border-box; }
@@ -68,6 +69,19 @@
     font-family: inherit;
   }
 
+  select {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--input-bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 9px 10px;
+    outline: none;
+  }
+  select:focus { border-color: var(--brand); }
+
   .preview {
     background: var(--input-bg);
     border: 1px solid var(--border);
@@ -81,6 +95,7 @@
   .preview .suffix { color: var(--brand); font-weight: 600; }
   .preview .row + .row { margin-top: 6px; }
   .preview .more { color: var(--text-secondary); }
+  .preview .size { color: var(--text-secondary); font-weight: 400; }
 
   /* Campo de texto genérico (nome do arquivo) */
   .text-wrap {
@@ -98,6 +113,7 @@
     display: flex;
     align-items: baseline;
     justify-content: space-between;
+    gap: 8px;
     margin-bottom: 6px;
   }
   .restore-link {
@@ -153,11 +169,40 @@
   .check .check-text { font-weight: 600; }
   .check .check-hint { color: var(--text-secondary); font-weight: 400; }
 
+  /* Controles de compressão */
+  .sliders {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .slider-row + .slider-row { margin-top: 8px; }
+  .slider-row .sl-label { flex: none; width: 62px; color: var(--text-secondary); }
+  .slider-row input[type="range"] { flex: 1; margin: 0; accent-color: var(--brand); }
+  .slider-row .sl-value {
+    flex: none;
+    width: 56px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+  .note {
+    margin-top: 8px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+  }
+
   /* Lista de telas selecionadas */
   .list {
     border: 1px solid var(--border);
     border-radius: 6px;
-    max-height: 132px;
+    max-height: 148px;
     overflow-y: auto;
   }
   .list:empty { display: none; }
@@ -176,11 +221,20 @@
   }
   .item .nm {
     flex: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .item .dim { flex: none; color: var(--text-secondary); font-size: 10px; }
+  .item .meta {
+    flex: none;
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .item .meta .from { text-decoration: line-through; }
+  .item .meta .to { color: var(--success); font-weight: 600; }
+  .item .meta .to.grow { color: var(--danger); }
   .item .move {
     flex: none;
     display: flex;
@@ -205,6 +259,15 @@
     border-radius: 6px;
   }
 
+  .totals {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .totals b { color: var(--text); }
+  .totals .to { color: var(--success); }
+  .totals .to.grow { color: var(--danger); }
+
   button {
     width: 100%;
     border: none;
@@ -219,13 +282,23 @@
   }
   button:disabled { opacity: .45; cursor: not-allowed; }
 
+  button.link {
+    width: auto;
+    padding: 0;
+    background: none;
+    color: var(--brand);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  button.link:hover:not(:disabled) { text-decoration: underline; }
+
   .msg {
     margin-top: 12px;
     font-size: 11px;
     min-height: 14px;
     color: var(--danger);
   }
-  .msg.ok { color: #14ae5c; }
+  .msg.ok { color: var(--success); }
   .msg.info { color: var(--text-secondary); }
 </style>
 </head>
@@ -275,12 +348,39 @@
   </div>
 
   <div class="field">
+    <label class="label" for="compress">Compressão</label>
+    <select id="compress">
+      <option value="none" selected>Nenhuma — vetorial, texto selecionável</option>
+      <option value="light">Leve — 144 DPI, qualidade 92%</option>
+      <option value="medium">Média — 108 DPI, qualidade 82%</option>
+      <option value="max">Máxima — 72 DPI, qualidade 65%</option>
+      <option value="custom">Personalizada…</option>
+    </select>
+
+    <div class="sliders" id="sliders" style="display:none">
+      <div class="slider-row">
+        <span class="sl-label">Resolução</span>
+        <input type="range" id="scale" min="0.5" max="4" step="0.25" value="1.5" />
+        <span class="sl-value" id="scaleValue">108 DPI</span>
+      </div>
+      <div class="slider-row">
+        <span class="sl-label">Qualidade</span>
+        <input type="range" id="quality" min="30" max="100" step="1" value="82" />
+        <span class="sl-value" id="qualityValue">82%</span>
+      </div>
+    </div>
+
+    <div class="note" id="compressNote"></div>
+  </div>
+
+  <div class="field">
     <div class="label-row">
-      <span class="label" style="margin-bottom:0">Telas selecionadas</span>
-      <span class="hint" id="selCount">0</span>
+      <span class="label" style="margin-bottom:0">Telas selecionadas <span class="hint" id="selCount">0</span></span>
+      <button class="link" id="measure" disabled>calcular tamanhos</button>
     </div>
     <div class="list" id="list"></div>
     <div class="empty" id="empty">Selecione uma ou mais telas no canvas.</div>
+    <div class="totals" id="totals"></div>
   </div>
 
   <div class="field">
@@ -296,23 +396,78 @@
   const fileNameInput = document.getElementById("fileName");
   const restoreLink = document.getElementById("restoreName");
   const layoutCheckbox = document.getElementById("layout");
+  const compressSelect = document.getElementById("compress");
+  const slidersEl = document.getElementById("sliders");
+  const scaleInput = document.getElementById("scale");
+  const qualityInput = document.getElementById("quality");
+  const scaleValueEl = document.getElementById("scaleValue");
+  const qualityValueEl = document.getElementById("qualityValue");
+  const compressNoteEl = document.getElementById("compressNote");
   const previewEl = document.getElementById("preview");
   const exportBtn = document.getElementById("export");
+  const measureBtn = document.getElementById("measure");
   const msgEl = document.getElementById("msg");
   const listEl = document.getElementById("list");
   const emptyEl = document.getElementById("empty");
   const selCountEl = document.getElementById("selCount");
+  const totalsEl = document.getElementById("totals");
   const modeSeparateLabel = document.getElementById("modeSeparateLabel");
   const modeSingleLabel = document.getElementById("modeSingleLabel");
 
+  // scale = multiplicador de resolução (1 => 72 DPI); quality = 0..1 do JPEG.
+  const PRESETS = {
+    none: null,
+    light: { scale: 2, quality: 0.92 },
+    medium: { scale: 1.5, quality: 0.82 },
+    max: { scale: 1, quality: 0.65 },
+  };
+
   let docName = "documento";
-  let nodes = [];          // telas selecionadas, na ordem de exportação
+  let nodes = [];              // telas selecionadas, na ordem de exportação
   let nameInitialized = false;
-  let busy = false;
+  let busy = false;            // exportando
+  let measuring = false;       // calculando tamanhos
+
+  // Caches de medição. O PDF vetorial de uma tela não depende da compressão,
+  // então fica num cache próprio e sobrevive à troca de preset.
+  let nativeSizes = {};        // id -> bytes do PDF vetorial
+  let compSizes = {};          // id -> bytes do PDF comprimido
+  let pages = {};              // id -> { jpeg, pxW, pxH, ptW, ptH }
+  let compKey = null;          // assinatura da compressão a que compSizes/pages se referem
+  let clampedAny = false;      // alguma tela teve a resolução reduzida
 
   function currentMode() {
     const checked = document.querySelector('input[name="mode"]:checked');
     return checked ? checked.value : "separate";
+  }
+
+  // Configuração de compressão ativa, ou null quando desligada.
+  function compression() {
+    const v = compressSelect.value;
+    if (v === "custom") {
+      return {
+        scale: parseFloat(scaleInput.value),
+        quality: parseInt(qualityInput.value, 10) / 100,
+      };
+    }
+    return PRESETS[v] || null;
+  }
+
+  // Assinatura da compressão: só ela afeta os bytes comprimidos de uma tela
+  // (nome, versão, modo e ordem não mudam o conteúdo).
+  function compressionKey() {
+    const c = compression();
+    return c ? c.scale + ":" + c.quality : "none";
+  }
+
+  // Os tamanhos da configuração atual já estão calculados?
+  function hasSizes() {
+    if (nodes.length === 0) return false;
+    if (!compression()) return nodes.every((n) => nativeSizes[n.id] != null);
+    return (
+      compKey === compressionKey() &&
+      nodes.every((n) => compSizes[n.id] != null)
+    );
   }
 
   // Nome base: o que o usuário digitou, ou o nome do Figma como fallback.
@@ -383,6 +538,13 @@
       .trim();
   }
 
+  function formatBytes(n) {
+    if (n == null) return "—";
+    if (n < 1024) return n + " B";
+    if (n < 1024 * 1024) return (n / 1024).toFixed(0).replace(".", ",") + " KB";
+    return (n / (1024 * 1024)).toFixed(1).replace(".", ",") + " MB";
+  }
+
   function tail() {
     return `-${todayStr()}-v.${currentVersion()}.pdf`;
   }
@@ -418,9 +580,118 @@
     return nodes.map((n, i) => ({ id: n.id, fileName: unique[i] }));
   }
 
+  // ================= PDF a partir de imagens =================
+  // Um PDF mínimo, uma página por imagem, com o JPEG embutido cru
+  // (filtro DCTDecode — o formato aceita os bytes do JPEG sem reencodar).
+  function buildImagePdf(pageList) {
+    const enc = new TextEncoder();
+    const chunks = [];
+    let len = 0;
+
+    function push(data) {
+      const arr = typeof data === "string" ? enc.encode(data) : data;
+      chunks.push(arr);
+      len += arr.length;
+    }
+    function fmt(n) {
+      return String(Math.round(n * 100) / 100);
+    }
+
+    const objCount = 2 + pageList.length * 3;
+    const offsets = new Array(objCount + 1).fill(0);
+
+    push("%PDF-1.4\n");
+    // comentário binário: marca o arquivo como não-texto
+    push(new Uint8Array([0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a]));
+
+    offsets[1] = len;
+    push("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+
+    const kids = pageList.map((_, i) => `${3 + i * 3} 0 R`).join(" ");
+    offsets[2] = len;
+    push(
+      `2 0 obj\n<< /Type /Pages /Kids [${kids}] /Count ${pageList.length} >>\nendobj\n`
+    );
+
+    pageList.forEach((p, i) => {
+      const pageNum = 3 + i * 3;
+      const contentNum = pageNum + 1;
+      const imageNum = pageNum + 2;
+      const w = fmt(p.ptW);
+      const h = fmt(p.ptH);
+
+      offsets[pageNum] = len;
+      push(
+        `${pageNum} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${w} ${h}] ` +
+          `/Resources << /XObject << /Im0 ${imageNum} 0 R >> >> ` +
+          `/Contents ${contentNum} 0 R >>\nendobj\n`
+      );
+
+      // desenha a imagem ocupando a página inteira
+      const content = enc.encode(`q\n${w} 0 0 ${h} 0 0 cm\n/Im0 Do\nQ\n`);
+      offsets[contentNum] = len;
+      push(`${contentNum} 0 obj\n<< /Length ${content.length} >>\nstream\n`);
+      push(content);
+      push("endstream\nendobj\n");
+
+      offsets[imageNum] = len;
+      push(
+        `${imageNum} 0 obj\n<< /Type /XObject /Subtype /Image ` +
+          `/Width ${p.pxW} /Height ${p.pxH} /ColorSpace /DeviceRGB ` +
+          `/BitsPerComponent 8 /Filter /DCTDecode /Length ${p.jpeg.length} >>\nstream\n`
+      );
+      push(p.jpeg);
+      push("\nendstream\nendobj\n");
+    });
+
+    const xrefOffset = len;
+    // cada entrada da xref tem exatamente 20 bytes
+    let xref = `xref\n0 ${objCount + 1}\n0000000000 65535 f \n`;
+    for (let i = 1; i <= objCount; i++) {
+      xref += String(offsets[i]).padStart(10, "0") + " 00000 n \n";
+    }
+    push(xref);
+    push(
+      `trailer\n<< /Size ${objCount + 1} /Root 1 0 R >>\n` +
+        `startxref\n${xrefOffset}\n%%EOF\n`
+    );
+
+    return { chunks, size: len };
+  }
+
+  // PNG (bytes do Figma) -> JPEG comprimido, sobre fundo branco.
+  async function toJpeg(pngBytes, quality) {
+    const blob = new Blob([pngBytes], { type: "image/png" });
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+
+    const ctx = canvas.getContext("2d");
+    // JPEG não tem transparência: achata sobre branco
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bitmap, 0, 0);
+    if (bitmap.close) bitmap.close();
+
+    const out = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error("falha ao gerar JPEG"))),
+        "image/jpeg",
+        quality
+      );
+    });
+    const buf = await out.arrayBuffer();
+    return { jpeg: new Uint8Array(buf), pxW: canvas.width, pxH: canvas.height };
+  }
+
+  // ================= Interface =================
+
   // Pinta um nome de arquivo destacando o sufixo de layout.
   function renderName(name) {
-    const m = name.match(/^(.*?)( \((?:desktop|mobile|desktop\/mobile|desktop\+mobile)\))(.*)$/);
+    const m = name.match(
+      /^(.*?)( \((?:desktop|mobile|desktop\/mobile|desktop\+mobile)\))(.*)$/
+    );
     if (!m) return '<span class="pname">' + escapeHtml(name) + "</span>";
     return (
       '<span class="pname">' + escapeHtml(m[1]) + "</span>" +
@@ -429,37 +700,127 @@
     );
   }
 
+  // No PDF único sem compressão o tamanho real só é conhecido depois de
+  // exportar (o Figma compartilha fontes entre as páginas), então a soma dos
+  // PDFs individuais é uma estimativa.
+  function sizesAreApprox() {
+    return currentMode() === "single" && !compression();
+  }
+
+  // Montar o PDF único custa concatenar todos os JPEGs: guarda o resultado.
+  let singleTotalCache = { key: null, size: null };
+
+  function singleCompressedTotal() {
+    const key = compressionKey() + "|" + nodes.map((n) => n.id).join(",");
+    if (singleTotalCache.key === key) return singleTotalCache.size;
+    if (!nodes.length || !nodes.every((n) => pages[n.id])) return null;
+    const size = buildImagePdf(nodes.map((n) => pages[n.id])).size;
+    singleTotalCache = { key, size };
+    return size;
+  }
+
+  // Tamanho final de cada arquivo, quando já calculado.
+  function fileSizes() {
+    if (!hasSizes()) return null;
+    const c = compression();
+    const store = c ? compSizes : nativeSizes;
+
+    if (currentMode() === "single") {
+      // com compressão o total exato vem do arquivo montado
+      if (c) {
+        const exact = singleCompressedTotal();
+        return exact == null ? null : [exact];
+      }
+      let total = 0;
+      for (const n of nodes) {
+        if (store[n.id] == null) return null;
+        total += store[n.id];
+      }
+      return [total];
+    }
+
+    const out = [];
+    for (const n of nodes) {
+      if (store[n.id] == null) return null;
+      out.push(store[n.id]);
+    }
+    return out;
+  }
+
   function updatePreview() {
     if (nodes.length === 0) {
-      const name = sanitize(currentName()) + (layoutCheckbox.checked ? " (desktop/mobile)" : "") + tail();
+      const name =
+        sanitize(currentName()) +
+        (layoutCheckbox.checked ? " (desktop/mobile)" : "") +
+        tail();
       previewEl.innerHTML = '<div class="row">' + renderName(name) + "</div>";
       return;
     }
 
     const items = buildItems();
+    const finalSizes = fileSizes();
     const shown = items.slice(0, 3);
+
+    const approx = sizesAreApprox() ? "≈ " : "";
     let html = shown
-      .map((it) => '<div class="row">' + renderName(it.fileName) + "</div>")
+      .map((it, i) => {
+        const size =
+          finalSizes && finalSizes[i] != null
+            ? ' <span class="size">— ' + approx + formatBytes(finalSizes[i]) + "</span>"
+            : "";
+        return '<div class="row">' + renderName(it.fileName) + size + "</div>";
+      })
       .join("");
 
     if (items.length > shown.length) {
-      html += '<div class="row more">+ ' + (items.length - shown.length) + " arquivo(s)</div>";
+      html +=
+        '<div class="row more">+ ' +
+        (items.length - shown.length) +
+        " arquivo(s)</div>";
     }
     if (currentMode() === "single") {
-      html += '<div class="row more">' + nodes.length + " página(s) em um único PDF</div>";
+      html +=
+        '<div class="row more">' + nodes.length + " página(s) em um único PDF</div>";
     }
     previewEl.innerHTML = html;
   }
 
+  function updateCompressUI() {
+    const isCustom = compressSelect.value === "custom";
+    slidersEl.style.display = isCustom ? "block" : "none";
+
+    const c = compression();
+    if (isCustom) {
+      scaleValueEl.textContent = Math.round(72 * parseFloat(scaleInput.value)) + " DPI";
+      qualityValueEl.textContent = qualityInput.value + "%";
+    }
+
+    if (!c) {
+      compressNoteEl.textContent =
+        "PDF vetorial gerado pelo Figma: texto selecionável e melhor qualidade, arquivo maior.";
+    } else {
+      compressNoteEl.textContent =
+        "As telas são rasterizadas em JPEG a " +
+        Math.round(72 * c.scale) +
+        " DPI. O arquivo fica bem menor, mas o texto deixa de ser selecionável.";
+    }
+  }
+
   function updateButton() {
     const n = nodes.length;
-    exportBtn.disabled = busy || n === 0;
+    exportBtn.disabled = busy || measuring || n === 0;
+    measureBtn.disabled = busy || measuring || n === 0;
+
+    if (!measuring) {
+      measureBtn.textContent = hasSizes() ? "recalcular" : "calcular tamanhos";
+    }
 
     if (busy) return; // o texto durante a exportação é controlado pelo progresso
     if (n === 0) {
       exportBtn.textContent = "Exportar PDF";
     } else if (currentMode() === "single") {
-      exportBtn.textContent = n === 1 ? "Exportar PDF" : `Exportar PDF único (${n} páginas)`;
+      exportBtn.textContent =
+        n === 1 ? "Exportar PDF" : `Exportar PDF único (${n} páginas)`;
     } else {
       exportBtn.textContent = n === 1 ? "Exportar PDF" : `Exportar ${n} PDFs`;
     }
@@ -471,16 +832,18 @@
     const tmp = nodes[index];
     nodes[index] = nodes[target];
     nodes[target] = tmp;
-    renderList();
-    updatePreview();
+    // a ordem não muda os bytes de cada tela, só a ordem das páginas
+    refresh();
   }
 
   function renderList() {
-    selCountEl.textContent = nodes.length === 0 ? "0" : nodes.length + " tela(s)";
+    selCountEl.textContent = nodes.length === 0 ? "0" : "— " + nodes.length + " tela(s)";
     emptyEl.style.display = nodes.length === 0 ? "block" : "none";
     listEl.innerHTML = "";
 
     const reorderable = currentMode() === "single" && nodes.length > 1;
+    const compressed = !!compression();
+    const showComp = compressed && compKey === compressionKey();
 
     nodes.forEach((n, i) => {
       const row = document.createElement("div");
@@ -495,17 +858,35 @@
       nm.textContent = n.name;
       nm.title = n.name;
 
-      const dim = document.createElement("span");
-      dim.className = "dim";
-      dim.textContent = n.width != null && n.height != null ? n.width + "×" + n.height : "";
+      const meta = document.createElement("span");
+      meta.className = "meta";
+      const native = nativeSizes[n.id];
+      const comp = showComp ? compSizes[n.id] : null;
+
+      if (comp != null && native != null) {
+        const grow = comp > native;
+        meta.innerHTML =
+          '<span class="from">' + formatBytes(native) + "</span> " +
+          '<span class="to' + (grow ? " grow" : "") + '">' +
+          formatBytes(comp) + "</span>";
+      } else if (comp != null) {
+        meta.innerHTML = '<span class="to">' + formatBytes(comp) + "</span>";
+      } else if (native != null && !compressed) {
+        meta.innerHTML = '<span class="to">' + formatBytes(native) + "</span>";
+      } else if (native != null) {
+        meta.innerHTML = '<span class="from">' + formatBytes(native) + "</span>";
+      } else {
+        meta.textContent =
+          n.width != null && n.height != null ? n.width + "×" + n.height : "";
+      }
 
       row.appendChild(idx);
       row.appendChild(nm);
-      row.appendChild(dim);
+      row.appendChild(meta);
 
       if (reorderable) {
-        const move_ = document.createElement("span");
-        move_.className = "move";
+        const moveWrap = document.createElement("span");
+        moveWrap.className = "move";
 
         const up = document.createElement("button");
         up.textContent = "▲";
@@ -519,19 +900,75 @@
         down.disabled = i === nodes.length - 1;
         down.addEventListener("click", () => move(i, 1));
 
-        move_.appendChild(up);
-        move_.appendChild(down);
-        row.appendChild(move_);
+        moveWrap.appendChild(up);
+        moveWrap.appendChild(down);
+        row.appendChild(moveWrap);
       }
 
       listEl.appendChild(row);
     });
   }
 
+  function renderTotals() {
+    const finalSizes = fileSizes();
+    if (!finalSizes || nodes.length === 0) {
+      totalsEl.innerHTML = "";
+      return;
+    }
+
+    const compressed = !!compression();
+    const approx = sizesAreApprox() ? "≈ " : "";
+    const total = finalSizes.reduce((a, b) => a + b, 0);
+    let html = "Total: <b>" + approx + formatBytes(total) + "</b>";
+
+    if (compressed) {
+      let native = 0;
+      let ok = true;
+      for (const n of nodes) {
+        if (nativeSizes[n.id] == null) { ok = false; break; }
+        native += nativeSizes[n.id];
+      }
+      if (ok && native > 0) {
+        const diff = Math.round((1 - total / native) * 100);
+        const grow = diff < 0;
+        html =
+          "Total: " + formatBytes(native) + " → " +
+          '<b class="to' + (grow ? " grow" : "") + '">' + formatBytes(total) + "</b> " +
+          "(" + (grow ? "+" + -diff : "−" + diff) + "%)";
+      }
+    }
+
+    if (clampedAny) {
+      html += '<br />Alguma tela é grande demais para a resolução escolhida e foi reduzida.';
+    }
+
+    totalsEl.innerHTML = html;
+  }
+
   function refresh() {
     renderList();
+    renderTotals();
     updatePreview();
     updateButton();
+  }
+
+  // A seleção mudou: nada do que foi medido serve.
+  function invalidateAll() {
+    nativeSizes = {};
+    compSizes = {};
+    pages = {};
+    compKey = null;
+    clampedAny = false;
+    singleTotalCache = { key: null, size: null };
+  }
+
+  // Só a compressão mudou: os PDFs vetoriais medidos continuam valendo.
+  function invalidateCompression() {
+    compSizes = {};
+    pages = {};
+    compKey = null;
+    clampedAny = false;
+    singleTotalCache = { key: null, size: null };
   }
 
   // ---- Fila de downloads ----
@@ -546,7 +983,7 @@
   }
 
   function saveFile(item) {
-    const blob = new Blob([item.bytes], { type: "application/pdf" });
+    const blob = new Blob(item.parts, { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -569,6 +1006,11 @@
     flushFinish();
   }
 
+  function enqueue(parts, fileName) {
+    queue.push({ parts, fileName });
+    drain();
+  }
+
   function flushFinish() {
     if (!pendingFinish || draining || queue.length) return;
     const info = pendingFinish;
@@ -579,12 +1021,10 @@
       msgEl.textContent = `PDF exportado com ${info.total} página(s).`;
     } else {
       msgEl.textContent =
-        info.total === 1
-          ? "PDF exportado."
-          : `${info.total} PDFs exportados.`;
+        info.total === 1 ? "PDF exportado." : `${info.total} PDFs exportados.`;
     }
     msgEl.className = "msg ok";
-    updateButton();
+    refresh();
   }
 
   // ---- Eventos da interface ----
@@ -596,6 +1036,25 @@
   });
 
   layoutCheckbox.addEventListener("change", updatePreview);
+
+  compressSelect.addEventListener("change", () => {
+    if (compressSelect.value === "custom") {
+      // parte dos valores do preset médio
+      scaleInput.value = String(PRESETS.medium.scale);
+      qualityInput.value = String(Math.round(PRESETS.medium.quality * 100));
+    }
+    if (compKey !== compressionKey()) invalidateCompression();
+    updateCompressUI();
+    refresh();
+  });
+
+  [scaleInput, qualityInput].forEach((el) => {
+    el.addEventListener("input", () => {
+      if (compKey !== compressionKey()) invalidateCompression();
+      updateCompressUI();
+      refresh();
+    });
+  });
 
   document.querySelectorAll('input[name="mode"]').forEach((radio) => {
     radio.addEventListener("change", () => {
@@ -617,40 +1076,149 @@
     updatePreview();
   });
 
-  exportBtn.addEventListener("click", () => {
-    if (busy || nodes.length === 0) return;
+  measureBtn.addEventListener("click", () => {
+    if (measuring || busy || nodes.length === 0) return;
 
-    versionInput.value = currentVersion();
-    updatePreview();
+    const c = compression();
+    // só pede ao Figma o que ainda não está em cache
+    const needNative = nodes.some((n) => nativeSizes[n.id] == null);
+    const needRaster = !!c && !nodes.every((n) => pages[n.id] && compKey === compressionKey());
 
-    busy = true;
-    exportBtn.disabled = true;
-    exportBtn.textContent = "Exportando…";
+    if (!needNative && !needRaster) {
+      if (c) compKey = compressionKey();
+      refresh();
+      return;
+    }
+    if (needRaster) invalidateCompression();
+
+    measuring = true;
+    pendingCompKey = compressionKey();
+    measureBtn.textContent = "calculando…";
     msgEl.textContent = "";
     msgEl.className = "msg";
-
-    const mode = currentMode();
-    const items =
-      mode === "single"
-        ? [{ id: null, fileName: buildItems()[0].fileName }]
-        : buildItems();
+    updateButton();
 
     parent.postMessage(
       {
         pluginMessage: {
-          type: "export",
-          mode,
-          version: currentVersion(),
-          fileName: items[0].fileName,
-          // no modo "single" o code.js usa apenas os ids, na ordem enviada
-          items: mode === "single"
-            ? nodes.map((n) => ({ id: n.id }))
-            : items,
+          type: "measure",
+          ids: nodes.map((n) => n.id),
+          scale: needRaster ? c.scale : null,
+          native: needNative,
         },
       },
       "*"
     );
   });
+
+  exportBtn.addEventListener("click", () => {
+    if (busy || measuring || nodes.length === 0) return;
+
+    versionInput.value = currentVersion();
+    const c = compression();
+    const items = buildItems();
+
+    busy = true;
+    exportBtn.disabled = true;
+    measureBtn.disabled = true;
+    exportBtn.textContent = "Exportando…";
+    msgEl.textContent = "";
+    msgEl.className = "msg";
+
+    exportItems = items;
+    exportMode = currentMode();
+
+    // Se os tamanhos já foram calculados com estas configurações, os bitmaps
+    // estão em cache: monta o PDF direto, sem rasterizar de novo.
+    if (c && compKey === compressionKey() && nodes.every((n) => pages[n.id])) {
+      finishCompressedExport();
+      return;
+    }
+
+    parent.postMessage(
+      {
+        pluginMessage: {
+          type: "export",
+          mode: exportMode,
+          version: currentVersion(),
+          fileName: items[0].fileName,
+          scale: c ? c.scale : null,
+          items:
+            exportMode === "single"
+              ? nodes.map((n) => ({ id: n.id }))
+              : items,
+        },
+      },
+      "*"
+    );
+  });
+
+  // ---- Rasterização: fila sequencial para preservar a ordem ----
+  let chain = Promise.resolve();
+  let pendingCompKey = null; // assinatura de compressão sendo medida
+  let exportItems = [];      // nomes de arquivo do export em andamento
+  let exportMode = "separate";
+
+  function fail(message) {
+    busy = false;
+    measuring = false;
+    msgEl.textContent = message;
+    msgEl.className = "msg";
+    refresh();
+  }
+
+  async function handleRaster(msg) {
+    if (msg.nativeSize != null) nativeSizes[msg.id] = msg.nativeSize;
+    if (msg.clamped) clampedAny = true;
+
+    if (msg.bytes) {
+      const c = compression();
+      const img = await toJpeg(msg.bytes, c ? c.quality : 0.82);
+      pages[msg.id] = {
+        jpeg: img.jpeg,
+        pxW: img.pxW,
+        pxH: img.pxH,
+        ptW: msg.ptW,
+        ptH: msg.ptH,
+      };
+      // tamanho exato do PDF de uma página só
+      compSizes[msg.id] = buildImagePdf([pages[msg.id]]).size;
+    }
+
+    if (msg.purpose === "measure") {
+      measureBtn.textContent = `calculando ${msg.index}/${msg.total}…`;
+    }
+  }
+
+  function finishCompressedExport() {
+    const list = nodes.map((n) => pages[n.id]).filter(Boolean);
+    if (list.length === 0) {
+      fail("Não foi possível gerar as imagens das telas.");
+      return;
+    }
+
+    if (exportMode === "single") {
+      const pdf = buildImagePdf(list);
+      enqueue(pdf.chunks, exportItems[0].fileName);
+      pendingFinish = { mode: "single", total: list.length };
+    } else {
+      const byId = {};
+      exportItems.forEach((it) => (byId[it.id] = it.fileName));
+      let count = 0;
+      for (const n of nodes) {
+        const page = pages[n.id];
+        if (!page) continue;
+        const pdf = buildImagePdf([page]);
+        enqueue(pdf.chunks, byId[n.id] || sanitize(n.name) + ".pdf");
+        count++;
+      }
+      pendingFinish = { mode: "separate", total: count };
+    }
+
+    // os tamanhos agora são conhecidos; guarda para a prévia
+    compKey = compressionKey();
+    flushFinish();
+  }
 
   // ---- Mensagens vindas do code.js ----
   onmessage = (event) => {
@@ -671,6 +1239,7 @@
         nodes = nodes.map((old) => incoming.find((n) => n.id === old.id) || old);
       } else {
         nodes = incoming.slice();
+        invalidateAll();
       }
 
       // Preenche o campo de nome com o nome do Figma na primeira carga,
@@ -689,6 +1258,12 @@
     }
 
     if (msg.type === "progress") {
+      if (msg.purpose === "measure") {
+        if (measuring) {
+          measureBtn.textContent = `calculando ${msg.done + 1}/${msg.total}…`;
+        }
+        return;
+      }
       if (!busy) return;
       const label = msg.label ? " — " + msg.label : "";
       exportBtn.textContent =
@@ -697,9 +1272,27 @@
           : "Exportando…";
     }
 
+    if (msg.type === "raster") {
+      chain = chain
+        .then(() => handleRaster(msg))
+        .catch((e) => fail("Erro ao processar a imagem: " + e.message));
+    }
+
+    if (msg.type === "rasterDone") {
+      chain = chain.then(() => {
+        if (msg.purpose === "measure") {
+          measuring = false;
+          compKey = pendingCompKey;
+          refresh();
+        } else {
+          finishCompressedExport();
+        }
+      });
+    }
+
+    // PDF pronto vindo do code.js (caminho sem compressão)
     if (msg.type === "download") {
-      queue.push({ bytes: msg.bytes, fileName: msg.fileName });
-      drain();
+      enqueue([msg.bytes], msg.fileName);
     }
 
     if (msg.type === "finished") {
@@ -708,12 +1301,11 @@
     }
 
     if (msg.type === "error") {
-      busy = false;
-      msgEl.textContent = msg.message;
-      msgEl.className = "msg";
-      updateButton();
+      fail(msg.message);
     }
   };
+
+  updateCompressUI();
 
   // Pede o estado inicial
   parent.postMessage({ pluginMessage: { type: "init" } }, "*");
