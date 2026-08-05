@@ -486,6 +486,16 @@
 <body>
  <!-- tudo aqui dentro vira skeleton durante a exportação -->
  <div id="form">
+  <div class="field">
+    <div class="label-row">
+      <span class="label" style="margin-bottom:0">Telas selecionadas <span class="hint" id="selCount">0</span></span>
+      <button class="link" id="measure" disabled>calcular tamanhos</button>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="empty" id="empty">Selecione uma ou mais telas no canvas.</div>
+    <div class="totals" id="totals"></div>
+  </div>
+
   <!-- só faz sentido com mais de uma tela selecionada -->
   <div class="field" id="modeField" style="display:none">
     <span class="label">Como exportar</span>
@@ -504,16 +514,6 @@
   </div>
 
   <div class="field">
-    <label class="label" for="version">
-      Versão <span class="hint">— formato 0.0</span>
-    </label>
-    <div class="version-wrap">
-      <span class="prefix">v.</span>
-      <input id="version" type="text" inputmode="decimal" placeholder="1.0" value="1.0" />
-    </div>
-  </div>
-
-  <div class="field">
     <div class="label-row">
       <label class="label" for="fileName" style="margin-bottom:0">Nome do arquivo</label>
       <a class="restore-link" id="restoreName">usar nome do Figma</a>
@@ -524,11 +524,26 @@
   </div>
 
   <div class="field">
+    <label class="label" for="version">
+      Versão <span class="hint">— formato 0.0</span>
+    </label>
+    <div class="version-wrap">
+      <span class="prefix">v.</span>
+      <input id="version" type="text" inputmode="decimal" placeholder="1.0" value="1.0" />
+    </div>
+  </div>
+
+  <div class="field">
     <label class="check">
       <input type="checkbox" id="layout" />
       <span class="check-text">Layout</span>
       <span class="check-hint">— acrescenta (desktop) ou (mobile)</span>
     </label>
+  </div>
+
+  <div class="field">
+    <span class="label">Nome final</span>
+    <div class="preview" id="preview">—</div>
   </div>
 
   <div class="field">
@@ -575,20 +590,6 @@
     </div>
   </div>
 
-  <div class="field">
-    <div class="label-row">
-      <span class="label" style="margin-bottom:0">Telas selecionadas <span class="hint" id="selCount">0</span></span>
-      <button class="link" id="measure" disabled>calcular tamanhos</button>
-    </div>
-    <div class="list" id="list"></div>
-    <div class="empty" id="empty">Selecione uma ou mais telas no canvas.</div>
-    <div class="totals" id="totals"></div>
-  </div>
-
-  <div class="field">
-    <span class="label">Nome final</span>
-    <div class="preview" id="preview">—</div>
-  </div>
  </div>
 
   <button id="export" disabled>
@@ -1898,10 +1899,12 @@
         nameInitialized = true;
       }
 
-      if (msg.selectionCount > 0 && nodes.length === 0) {
-        msgEl.textContent = "A seleção atual não pode ser exportada em PDF.";
-        msgEl.className = "msg";
-      }
+      // A mensagem de seleção não exportável mora no estado vazio da lista,
+      // ao lado do contexto a que se refere.
+      emptyEl.textContent =
+        msg.selectionCount > 0 && nodes.length === 0
+          ? "A seleção atual não pode ser exportada em PDF."
+          : "Selecione uma ou mais telas no canvas.";
 
       refresh();
     }
