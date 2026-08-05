@@ -747,13 +747,18 @@
     return " (desktop+mobile)";
   }
 
-  // ---- Formata a versão para o padrão "0.0" ----
+  // ---- Formata a versão para o padrão "X.Y" ----
+  // Trata major e minor como texto, não como número: "1.10" e "2.25" são
+  // versões válidas e diferentes de "1.1" e "2.3" (parseFloat/toFixed as
+  // arredondaria silenciosamente).
   function normalizeVersion(raw) {
     // mantém só dígitos e ponto
-    let v = (raw || "").replace(/[^0-9.]/g, "");
-    const n = parseFloat(v);
-    if (isNaN(n)) return "1.0";
-    return n.toFixed(1); // garante sempre um dígito decimal: 1 -> "1.0"
+    const v = (raw || "").replace(/[^0-9.]/g, "");
+    const parts = v.split(".").filter((p) => p !== "");
+    if (parts.length === 0) return "1.0";
+    const major = String(parseInt(parts[0], 10));
+    const minor = parts.length > 1 ? parts[1] : "0";
+    return major + "." + minor;
   }
 
   function currentVersion() {
