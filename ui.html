@@ -219,14 +219,17 @@
     gap: 8px;
     min-width: 0;
   }
+  /* Nome final: é a informação que o usuário confere antes de exportar,
+     então não pode ser o menor texto da interface. O nome fica em --text e
+     a cauda automática (data-versão) herda o cinza secundário do container. */
   .item .final {
-    font-size: 10px;
+    font-size: 11px;
     line-height: 1.45;
     color: var(--text-secondary);
     word-break: break-all;
     padding-left: 7px; /* alinha com o texto dentro do input */
   }
-  .item .final .pname { color: var(--text); }
+  .item .final .pname { color: var(--text); font-weight: 500; }
   .item .final .suffix { color: var(--brand); font-weight: 600; }
   .item + .item { border-top: 1px solid var(--border); }
   .item .idx {
@@ -284,7 +287,7 @@
   .item .meta {
     flex: none;
     color: var(--text-secondary);
-    font-size: 10px;
+    font-size: 11px;
     font-variant-numeric: tabular-nums;
   }
   .item .meta .from { text-decoration: line-through; }
@@ -293,12 +296,12 @@
   /* Nome final abaixo de um campo de texto (PDF único e .zip). */
   .final-line {
     margin-top: 6px;
-    font-size: 10px;
+    font-size: 11px;
     line-height: 1.45;
     color: var(--text-secondary);
     word-break: break-all;
   }
-  .final-line .pname { color: var(--text); }
+  .final-line .pname { color: var(--text); font-weight: 500; }
   .final-line .suffix { color: var(--brand); font-weight: 600; }
   .final-line .size { color: var(--text-secondary); }
 
@@ -349,15 +352,23 @@
   }
   button:disabled { opacity: .45; cursor: not-allowed; }
 
+  /* Links de ação (calcular tamanhos, restaurar nome): peso maior para o
+     azul da marca passar no contraste, e padding para um alvo decente sem
+     deslocar o texto do lugar. */
   button.link {
     width: auto;
-    padding: 0;
+    padding: 4px 6px;
+    margin: -4px -6px;
+    border-radius: 4px;
     background: none;
     color: var(--brand);
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 600;
   }
-  button.link:hover:not(:disabled) { text-decoration: underline; }
+  button.link:hover:not(:disabled) {
+    text-decoration: underline;
+    background: var(--input-bg);
+  }
 
   .msg {
     margin-top: 12px;
@@ -514,7 +525,9 @@
   .error-actions {
     flex: none;
     display: flex;
-    gap: 10px;
+    /* os links têm margem negativa para ampliar o alvo; o gap maior evita
+       que as áreas clicáveis se sobreponham */
+    gap: 18px;
   }
   .error-details {
     margin: 8px 0 0;
@@ -1330,16 +1343,24 @@
 
   // ================= Interface =================
 
-  // Pinta um nome de arquivo destacando o sufixo de layout.
+  // Pinta um nome de arquivo em camadas de importância: o que o usuário
+  // decidiu (nome) em destaque, o sufixo de layout em azul e a cauda
+  // automática (data-versão.ext) recuada — ela é igual em todos os arquivos,
+  // então não precisa competir com o que varia.
   function renderName(name) {
-    const m = name.match(
+    const t = name.match(/^(.*?)(-\d{2}\.\d{2}\.\d{4}-v\.[^-]+\.(?:pdf|zip))$/);
+    const head = t ? t[1] : name;
+    const tail = t ? '<span class="tail">' + escapeHtml(t[2]) + "</span>" : "";
+
+    const m = head.match(
       /^(.*?)( \((?:desktop|mobile|desktop\/mobile|desktop\+mobile)\))(.*)$/
     );
-    if (!m) return '<span class="pname">' + escapeHtml(name) + "</span>";
+    if (!m) return '<span class="pname">' + escapeHtml(head) + "</span>" + tail;
     return (
       '<span class="pname">' + escapeHtml(m[1]) + "</span>" +
       '<span class="suffix">' + escapeHtml(m[2]) + "</span>" +
-      '<span class="pname">' + escapeHtml(m[3]) + "</span>"
+      '<span class="pname">' + escapeHtml(m[3]) + "</span>" +
+      tail
     );
   }
 
