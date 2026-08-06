@@ -24,7 +24,20 @@
     font-size: 12px;
     color: var(--text);
     background: var(--bg);
-    padding: 16px;
+    /* sem padding embaixo: quem fecha a página é o rodapé fixo */
+    padding: 16px 16px 0;
+  }
+
+  /* Rodapé com a ação principal. sticky (e não fixed) de propósito: com
+     pouco conteúdo ele segue o fluxo, como sempre foi; quando o formulário
+     passa da janela, gruda na base e o resto rola por trás. */
+  #footer {
+    position: sticky;
+    bottom: 0;
+    margin: 12px -16px 0;
+    padding: 12px 16px 14px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
   }
 
   .label {
@@ -698,25 +711,30 @@
 
  </div>
 
-  <button id="export" disabled>
-    <span class="btn-progress" id="btnProgress"></span>
-    <span class="btn-content">
-      <span class="spinner" id="spinner" aria-hidden="true"></span>
-      <span id="exportLabel">Exportar PDF</span>
-    </span>
-  </button>
-
-  <div class="msg" id="msg" role="status"></div>
-
-  <div class="error-box" id="errorBox" style="display:none">
-    <div class="error-head">
-      <span class="error-title" id="errorTitle"></span>
-      <span class="error-actions">
-        <button class="link" id="errorToggle">ver detalhes</button>
-        <button class="link" id="errorCopy">copiar</button>
+  <!-- Rodapé grudado na base da janela: a ação principal e o resultado dela
+       (mensagem ou erro) ficam sempre visíveis, mesmo com o formulário
+       rolando por trás. Com pouco conteúdo, ele fica no fluxo normal. -->
+  <div id="footer">
+    <button id="export" disabled>
+      <span class="btn-progress" id="btnProgress"></span>
+      <span class="btn-content">
+        <span class="spinner" id="spinner" aria-hidden="true"></span>
+        <span id="exportLabel">Exportar PDF</span>
       </span>
+    </button>
+
+    <div class="msg" id="msg" role="status"></div>
+
+    <div class="error-box" id="errorBox" style="display:none">
+      <div class="error-head">
+        <span class="error-title" id="errorTitle"></span>
+        <span class="error-actions">
+          <button class="link" id="errorToggle">ver detalhes</button>
+          <button class="link" id="errorCopy">copiar</button>
+        </span>
+      </div>
+      <pre class="error-details" id="errorDetails" style="display:none"></pre>
     </div>
-    <pre class="error-details" id="errorDetails" style="display:none"></pre>
   </div>
 
 <script>

@@ -215,6 +215,7 @@ Os detalhes trazem o passo em que o plugin estava, a tela envolvida, a configura
 - **Skeleton na exportação** — o formulário vira blocos pulsantes e o botão ganha spinner, contador `3/8` e barra de progresso, sem salto de layout.
 - **Erro com detalhes** — a animação é cancelada e um painel mostra a mensagem, a etapa, a tela envolvida, a configuração e o stack, com botão para copiar.
 - **Só o que faz sentido aparece** — o seletor de modo surge com 2+ telas; o campo de nome do `.zip`, ao marcar o check.
+- **Rodapé fixo** — o botão **Exportar** e as mensagens (sucesso ou erro) ficam sempre visíveis na base da janela; o formulário rola por trás. `Ctrl/Cmd+Enter` também exporta.
 - **Tema nativo** — segue automaticamente o tema claro/escuro do Figma (`themeColors`), e respeita `prefers-reduced-motion`.
 - **Preferências lembradas** — modo, compressão, sufixo de layout e `.zip` ficam salvos entre sessões (`clientStorage`); quem exporta sempre do mesmo jeito abre o plugin já configurado. Nome e versão não são lembrados de propósito: mudam a cada entrega.
 
