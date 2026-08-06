@@ -350,6 +350,19 @@ Depois, uma passada de usabilidade e arquitetura da informação (também 05.08.
 | [#14](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/14) | Botão fica verde com "✓ Exportado" ao concluir |
 | [#15](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/15) | Miniaturas das telas na lista de seleção |
 
+Em 06.08.2026, a nomeação individual e uma passada visual (tipografia, contraste, tema e textos):
+
+| PR | O que entrou |
+|----|--------------|
+| [#17](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/17) | Nome de cada PDF vem do frame e é editável na lista; desempate de nomes iguais corrigido (`Tela (2)` antes da versão) |
+| [#18](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/18) | "Telas selecionadas" e "Nome final" fundidas: o nome final mora embaixo do campo que o gera |
+| [#19](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/19) | Nome final maior e em camadas: o que o usuário decidiu destaca, a cauda automática recua |
+| [#20](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/20) | Campo de renomear com fundo em repouso — dá para ver que é editável |
+| [#21](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/21) | Foco por teclado em todos os controles, alvos de 24px e `Ctrl/Cmd+Enter` para exportar |
+| [#22](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/22) | Rodapé fixo: botão e mensagens sempre visíveis, formulário rola por trás |
+| [#23](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/23) | Verde de sucesso e segmento ativo seguem os tokens de tema do Figma |
+| [#24](https://github.com/lucasbatistaribeiro/figma-export-pdf-with-version/pull/24) | Plural de verdade, rótulos de compressão pela consequência e tooltip com o critério do layout |
+
 ## 📄 Licença
 
 Distribuído sob a licença [MIT](LICENSE).
