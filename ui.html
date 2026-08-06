@@ -846,10 +846,20 @@
   let compKey = null;          // assinatura da compressão a que compSizes/pages se referem
   let clampedAny = false;      // alguma tela teve a resolução reduzida
 
-  // Miniaturas das telas. Cache por id, válido pela sessão do plugin —
-  // o iframe morre ao fechar, então os object URLs vão junto.
-  const thumbs = {};       // id -> object URL do PNG pequeno
+  // Miniaturas das telas. Cache por id, válido pela sessão do plugin.
+  // data: URLs em vez de blob: — os PNGs têm 48px, o custo do base64 é nulo
+  // e não fica nenhuma dúvida de CSP no iframe do Figma.
+  const thumbs = {};       // id -> data URL do PNG pequeno
   const thumbPending = {}; // id -> true enquanto o code.js exporta
+
+  function uint8ToBase64(bytes) {
+    let bin = "";
+    const CHUNK = 0x8000; // String.fromCharCode tem limite de argumentos
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+    }
+    return btoa(bin);
+  }
 
   function requestThumbs() {
     const ids = nodes
@@ -1837,10 +1847,9 @@
         meta.innerHTML = '<span class="to">' + formatBytes(native) + "</span>";
       } else if (native != null) {
         meta.innerHTML = '<span class="from">' + formatBytes(native) + "</span>";
-      } else {
-        meta.textContent =
-          n.width != null && n.height != null ? n.width + "×" + n.height : "";
       }
+      // sem medição não há nada útil a mostrar: a proporção do frame (ex.
+      // 1440×900) era ruído — a miniatura já diz a forma da tela
 
       // corpo em duas alturas: nome + tamanho em cima, nome final embaixo
       const body = document.createElement("span");
@@ -2379,9 +2388,10 @@
 
     if (msg.type === "thumb") {
       delete thumbPending[msg.id];
-      if (thumbs[msg.id]) URL.revokeObjectURL(thumbs[msg.id]);
-      const blob = new Blob([msg.bytes], { type: "image/png" });
-      thumbs[msg.id] = URL.createObjectURL(blob);
+      // bytes null = falhou no code.js; com o pending limpo, a próxima
+      // mudança de seleção tenta de novo em vez de travar para sempre
+      if (!msg.bytes) return;
+      thumbs[msg.id] = "data:image/png;base64," + uint8ToBase64(msg.bytes);
       renderList();
     }
 
