@@ -95,15 +95,19 @@ Quando as telas têm larguras mistas, o sufixo de layout vira `(desktop+mobile)`
 
 ## 🗜️ Compressão
 
-O PDF vetorial do Figma é ótimo em qualidade, mas pesado — especialmente com imagens embutidas. O campo **Compressão** troca qualidade por tamanho:
+O PDF vetorial do Figma é ótimo em qualidade, mas pesado — especialmente com imagens embutidas. O controle de **Compressão** é um slider com paradas nos 4 níveis (os labels embaixo também são clicáveis), e a nota abaixo dele mostra os números do nível escolhido:
 
-| Opção | Resolução | Qualidade JPEG |
-|-------|-----------|----------------|
+```
+Nenhuma ───●───────○───────○───────○ Máxima
+        Nenhuma   Leve   Média   Máxima
+```
+
+| Parada | Resolução | Qualidade JPEG |
+|--------|-----------|----------------|
 | **Nenhuma** | vetorial (sem rasterizar) | — |
 | **Leve** | 144 DPI | 92% |
 | **Média** | 108 DPI | 82% |
 | **Máxima** | 72 DPI | 65% |
-| **Personalizada** | 36–288 DPI | 30–100% |
 
 Com qualquer opção diferente de *Nenhuma*, as telas são rasterizadas e embutidas como JPEG. **O texto deixa de ser selecionável** — é a troca em jogo.
 
@@ -206,7 +210,7 @@ Os detalhes trazem o passo em que o plugin estava, a tela envolvida, a configura
 
 - **Lote** — exporta todas as telas selecionadas de uma vez, como arquivos separados ou como um PDF único multipágina.
 - **Lista ordenável** — mostra as telas selecionadas com miniatura e dimensões; no modo *PDF único* a ordem da lista define a ordem das páginas.
-- **Compressão opcional** — 3 presets + modo personalizado (resolução e qualidade JPEG), com aviso claro de que o texto deixa de ser selecionável.
+- **Compressão opcional** — slider com paradas em 4 níveis (Nenhuma → Máxima), com aviso claro de que o texto deixa de ser selecionável.
 - **Pacote .zip** — junta tudo num único download, com nome próprio; DEFLATE nativo, sem bibliotecas externas.
 - **Prévia de tamanho medida** — mostra o peso final de cada arquivo e o total antes/depois, com o percentual de redução.
 
@@ -244,7 +248,7 @@ Como o plugin ainda não está publicado na Figma Community, você o roda localm
    - **Sufixo de nome** — marque para acrescentar o nome do documento a todos os arquivos
    - **Sufixo de layout** — marque para adicionar `(desktop)`/`(mobile)` ao nome
 5. Escolha as opções de saída:
-   - **Compressão** — deixe em *Nenhuma* para PDF vetorial, ou escolha um preset
+   - **Compressão** — deixe o slider em *Nenhuma* para PDF vetorial, ou arraste até um dos níveis
    - **Compactar em .zip** — marque para receber um único arquivo, e dê um nome a ele
 6. *(Opcional)* Clique em **calcular tamanhos**, ao lado de *Compressão*, para ver o peso de cada arquivo antes de exportar.
 7. Clique em **Exportar** — o download começa automaticamente com os nomes montados.
