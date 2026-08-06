@@ -13,7 +13,9 @@
     --brand: var(--figma-color-bg-brand, #0d99ff);
     --brand-text: var(--figma-color-text-onbrand, #fff);
     --danger: var(--figma-color-text-danger, #e03e3e);
-    --success: #14ae5c;
+    /* o Figma expõe um token de sucesso próprio; o hex é só fallback */
+    --success: var(--figma-color-bg-success, #14ae5c);
+    --success-text: var(--figma-color-text-onsuccess, #fff);
   }
 
   * { box-sizing: border-box; }
@@ -161,7 +163,9 @@
     background: var(--bg);
     color: var(--text);
     font-weight: 600;
-    box-shadow: 0 1px 2px rgba(0,0,0,.12);
+    /* o anel usa o token de borda porque sombra preta some no tema escuro;
+       a sombra fica só como profundidade extra no claro */
+    box-shadow: 0 0 0 1px var(--border), 0 1px 2px rgba(0,0,0,.12);
   }
   .modes .sub {
     display: block;
@@ -483,6 +487,7 @@
   /* Fecho do ciclo: verde por alguns segundos ao concluir a exportação */
   button#export.success {
     background: var(--success);
+    color: var(--success-text);
   }
   .btn-progress {
     position: absolute;
