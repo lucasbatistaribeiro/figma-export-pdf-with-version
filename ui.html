@@ -134,6 +134,16 @@
     outline: 2px solid var(--brand);
     outline-offset: 1px;
   }
+
+  /* Foco por teclado em TODOS os controles de ação — os radios já tinham,
+     mas botões, links e checkboxes ficavam invisíveis para quem usa Tab. */
+  button:focus-visible,
+  input[type="checkbox"]:focus-visible,
+  input[type="range"]:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 1px;
+  }
   .modes label.on {
     background: var(--bg);
     color: var(--text);
@@ -313,8 +323,9 @@
     gap: 2px;
   }
   .item .move button {
-    width: 18px;
-    height: 18px;
+    /* 24px é o alvo mínimo recomendado; 18px errava fácil */
+    width: 24px;
+    height: 24px;
     padding: 0;
     border-radius: 4px;
     background: transparent;
@@ -2127,6 +2138,17 @@
       },
       "*"
     );
+  });
+
+  // Ctrl/Cmd+Enter exporta de qualquer lugar do formulário — útil sobretudo
+  // quando o botão está fora da dobra.
+  const isMac = /Mac/i.test(navigator.platform);
+  exportBtn.title = (isMac ? "⌘" : "Ctrl+") + "Enter";
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      if (!exportBtn.disabled) exportBtn.click();
+    }
   });
 
   exportBtn.addEventListener("click", () => {
