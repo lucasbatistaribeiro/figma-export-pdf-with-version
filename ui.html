@@ -268,7 +268,9 @@
     min-width: 0;
     border: 1px solid transparent;
     border-radius: 4px;
-    background: transparent;
+    /* fundo sutil em repouso: sem ele o campo era invisível e ninguém
+       descobria que dá para renomear (a affordance só existia no hover) */
+    background: var(--input-bg);
     color: var(--text);
     font-family: inherit;
     font-size: 12px;
