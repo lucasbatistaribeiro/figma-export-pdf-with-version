@@ -17,23 +17,39 @@ Além da nomeação, o plugin resolve o resto do caminho até a entrega: exporta
 Ao exportar, o plugin monta automaticamente um nome de arquivo no formato:
 
 ```
-NomeDoArquivo (layout)-DD.MM.AAAA-v.X.Y.pdf
+NomeDaTela-Sufixo (layout)-DD.MM.AAAA-v.X.Y.pdf
 ```
 
 Exemplo real:
 
 ```
-Home (desktop)-05.08.2026-v.1.0.pdf
+Home-Projeto (desktop)-05.08.2026-v.1.0.pdf
 ```
 
 Cada parte do nome é montada a partir dos campos da interface:
 
 | Parte | Origem | Exemplo |
 |-------|--------|---------|
-| **Nome do arquivo** | Campo editável (ou nome do documento do Figma) | `Home` |
+| **Nome** | Nome do frame no Figma — **editável por arquivo** na lista de telas | `Home` |
+| **Sufixo de nome** *(opcional)* | Checkbox + texto — o mesmo para todos os arquivos | `-Projeto` |
 | **Sufixo de layout** *(opcional)* | Checkbox — detecta `(desktop)` ou `(mobile)` pela largura do frame | `(desktop)` |
 | **Data** | Data atual, formato `DD.MM.AAAA` | `05.08.2026` |
 | **Versão** | Campo de versão, normalizado para `X.Y` | `v.1.0` |
+
+### Nomeando cada PDF
+
+O nome de cada arquivo **vem do frame** e aparece como campo editável na própria linha da tela, ao lado da miniatura. Trocar o nome ali não renomeia nada no Figma — vale só para a exportação. Campo vazio volta a seguir o frame, então nunca sai um arquivo sem identificação.
+
+Quando duas telas geram o mesmo nome — dois frames chamados `Tela`, por exemplo — o desempate entra **no nome**, para a versão continuar sendo o último elemento do padrão:
+
+```
+Tela-06.08.2026-v.1.0.pdf
+Tela (2)-06.08.2026-v.1.0.pdf
+```
+
+Se um sufixo de layout já diferencia os arquivos (`(desktop)` e `(mobile)`), o contador não aparece.
+
+No modo *PDF único* existe um arquivo só para N telas, então o nome dele é editado na seção **Nome final**. Por padrão ele segue a primeira tela da lista; assim que você digita algo, para de seguir — reordenar as páginas não muda mais o nome do arquivo.
 
 ## 🖼️ Exportando várias telas
 
@@ -41,21 +57,21 @@ Selecione quantas telas quiser e escolha o modo de exportação. O seletor **Com
 
 ### Arquivos separados — 1 PDF por tela
 
-Gera um PDF por tela selecionada, todos com a mesma data e versão. Com **mais de uma** tela, o nome do frame entra no arquivo:
+Gera um PDF por tela selecionada, todos com a mesma data e versão. Cada arquivo leva o nome da sua tela, editável na lista:
 
 ```
-Projeto-Home (desktop)-05.08.2026-v.1.0.pdf
-Projeto-Login (mobile)-05.08.2026-v.1.0.pdf
+Home-Projeto (desktop)-05.08.2026-v.1.0.pdf
+Login-Projeto (mobile)-05.08.2026-v.1.0.pdf
 ```
 
-Com apenas **uma** tela selecionada, o nome segue o formato original (sem o nome do frame). O sufixo de layout é calculado por tela, então cada arquivo recebe `(desktop)` ou `(mobile)` conforme a própria largura.
+O sufixo de layout é calculado por tela, então cada arquivo recebe `(desktop)` ou `(mobile)` conforme a própria largura.
 
 ### PDF único — 1 página por tela
 
 Gera **um só arquivo** com uma página por tela, na ordem mostrada na lista (use as setas ▲▼ para reordenar):
 
 ```
-Projeto (desktop+mobile)-05.08.2026-v.1.0.pdf
+Home-Projeto (desktop+mobile)-05.08.2026-v.1.0.pdf
 ```
 
 Quando as telas têm larguras mistas, o sufixo de layout vira `(desktop+mobile)`.
@@ -163,10 +179,11 @@ Os detalhes trazem o passo em que o plugin estava, a tela envolvida, a configura
 **Nomeação**
 
 - **Versão padronizada** — o campo aceita só números e ponto, e é normalizado para o formato `X.Y` (ex.: `1` vira `1.0`). O minor é preservado como texto: `1.10` e `2.25` continuam `1.10` e `2.25`.
-- **Nome editável** — por padrão usa o nome do documento do Figma, com link rápido para restaurá-lo (*"usar nome do Figma"*).
+- **Nome por arquivo** — cada PDF leva o nome do seu frame e pode ser renomeado na própria linha da lista, sem mexer no Figma. Campo vazio volta a seguir o frame.
+- **Sufixo de nome** — um texto opcional acrescentado a todos os arquivos de uma vez, no mesmo formato do sufixo de layout.
 - **Sufixo de layout automático** — marcando *Sufixo de layout*, o plugin acrescenta `(desktop)` ou `(mobile)` ao nome com base na largura do frame (≥ 400px = desktop).
 - **Pré-visualização ao vivo** — o campo *Nome final* mostra exatamente como os arquivos serão salvos, atualizando em tempo real.
-- **Nomes sem colisão** — nomes repetidos no mesmo lote recebem sufixo numérico automático, e caracteres inválidos (`/ \ : * ? " < > |`) são trocados por `-`.
+- **Nomes sem colisão** — arquivos com o mesmo nome no lote recebem um contador **no nome** (`Tela (2)`), preservando a versão como último elemento; caracteres inválidos (`/ \ : * ? " < > |`) são trocados por `-`.
 
 **Exportação**
 
@@ -204,8 +221,9 @@ Como o plugin ainda não está publicado na Figma Community, você o roda localm
 2. Rode o plugin (**Plugins → Development → Exportar PDF com Versão**).
 3. Confira as **Telas selecionadas**, no topo (e a ordem, no modo *PDF único*), e escolha **Como exportar** — *Arquivos separados* ou *PDF único* (aparece com 2+ telas).
 4. Ajuste a nomeação, conferindo o resultado no **Nome final**, logo abaixo:
-   - **Nome do arquivo** — editável (ou use o nome do Figma)
+   - **Nome de cada PDF** — na lista de telas, ao lado da miniatura; já vem com o nome do frame
    - **Versão** — ex.: `1.0`
+   - **Sufixo de nome** — marque para acrescentar um texto igual a todos os arquivos
    - **Sufixo de layout** — marque para adicionar `(desktop)`/`(mobile)` ao nome
 5. Escolha as opções de saída:
    - **Compressão** — deixe em *Nenhuma* para PDF vetorial, ou escolha um preset

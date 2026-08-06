@@ -247,6 +247,30 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  /* Nome do arquivo editável na própria linha da tela. Fica sem moldura até
+     receber o cursor, para a lista não parecer um formulário. */
+  .item .nm-input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 3px 6px;
+    outline: none;
+    text-overflow: ellipsis;
+  }
+  .item .nm-input:hover { border-color: var(--border); }
+  .item .nm-input:focus {
+    border-color: var(--brand);
+    background: var(--bg);
+    text-overflow: clip;
+  }
+  /* nome trocado à mão: destaque discreto para diferenciar do nome do frame */
+  .item .nm-input.edited { font-weight: 600; }
   .item .meta {
     flex: none;
     color: var(--text-secondary);
@@ -525,23 +549,31 @@
       <label id="modeSeparateLabel" class="on">
         <input type="radio" name="mode" value="separate" checked />
         Arquivos separados
-        <span class="sub">1 PDF por tela</span>
       </label>
       <label id="modeSingleLabel">
         <input type="radio" name="mode" value="single" />
         PDF único
-        <span class="sub">1 página por tela</span>
       </label>
     </div>
   </div>
 
+  <!-- O nome de cada arquivo vem do frame; este é um texto fixo acrescentado
+       a todos, no mesmo formato do sufixo de layout. -->
   <div class="field">
-    <div class="label-row">
-      <label class="label" for="fileName" style="margin-bottom:0">Nome do arquivo</label>
-      <button type="button" class="link" id="restoreName">usar nome do Figma</button>
-    </div>
-    <div class="text-wrap">
-      <input id="fileName" type="text" placeholder="Nome do arquivo" />
+    <label class="check">
+      <input type="checkbox" id="nameSuffix" />
+      <span class="check-text">Sufixo de nome</span>
+      <span class="check-hint">— acrescenta um texto a todos os arquivos</span>
+    </label>
+
+    <div id="nameSuffixWrap" style="display:none; margin-top:10px">
+      <div class="label-row">
+        <label class="label" for="nameSuffixValue" style="margin-bottom:0">Texto do sufixo</label>
+        <button type="button" class="link" id="restoreName">usar nome do Figma</button>
+      </div>
+      <div class="text-wrap">
+        <input id="nameSuffixValue" type="text" placeholder="Ex.: Projeto" />
+      </div>
     </div>
   </div>
 
@@ -565,6 +597,19 @@
 
   <div class="field">
     <span class="label">Nome final</span>
+
+    <!-- No PDF único existe um arquivo só para N telas: o nome dele é editado
+         aqui. No modo separado a edição fica na linha de cada tela. -->
+    <div id="singleNameWrap" style="display:none; margin-bottom:8px">
+      <div class="label-row">
+        <label class="label" for="singleName" style="margin-bottom:0">Nome do PDF</label>
+        <button type="button" class="link" id="restoreSingleName">usar nome da 1ª tela</button>
+      </div>
+      <div class="text-wrap">
+        <input id="singleName" type="text" placeholder="Nome do PDF" />
+      </div>
+    </div>
+
     <div class="preview" id="preview">—</div>
   </div>
 
@@ -640,8 +685,13 @@
 
 <script>
   const versionInput = document.getElementById("version");
-  const fileNameInput = document.getElementById("fileName");
+  const nameSuffixCheckbox = document.getElementById("nameSuffix");
+  const nameSuffixWrapEl = document.getElementById("nameSuffixWrap");
+  const nameSuffixInput = document.getElementById("nameSuffixValue");
   const restoreLink = document.getElementById("restoreName");
+  const singleNameWrapEl = document.getElementById("singleNameWrap");
+  const singleNameInput = document.getElementById("singleName");
+  const restoreSingleNameLink = document.getElementById("restoreSingleName");
   const layoutCheckbox = document.getElementById("layout");
   const compressSelect = document.getElementById("compress");
   const slidersEl = document.getElementById("sliders");
@@ -687,6 +737,12 @@
   let nameInitialized = false;
   let busy = false;            // exportando
   let measuring = false;       // calculando tamanhos
+
+  // Nomes trocados à mão. Chaveado por id do nó e mantido por toda a sessão:
+  // tirar e recolocar uma tela na seleção não perde o que já foi digitado.
+  // Não é persistido — é conteúdo da entrega, não preferência de trabalho.
+  const customNames = {};      // id -> nome digitado
+  let singleCustomName = null; // nome do arquivo no modo PDF único
 
   // Caches de medição. O PDF vetorial de uma tela não depende da compressão,
   // então fica num cache próprio e sobrevive à troca de preset.
@@ -755,10 +811,36 @@
     );
   }
 
-  // Nome base: o que o usuário digitou, ou o nome do Figma como fallback.
-  function currentName() {
-    const v = fileNameInput.value.trim();
-    return v || docName;
+  // ---- Nome dos arquivos ----
+  // A identidade de cada PDF vem do frame. O usuário pode trocar esse nome na
+  // linha da tela; campo vazio volta a seguir o frame, então nunca sai um
+  // arquivo sem identificação.
+  function nameOf(node) {
+    const custom = customNames[node.id];
+    if (typeof custom === "string" && custom.trim()) return custom.trim();
+    return node.name;
+  }
+
+  function isRenamed(node) {
+    const custom = customNames[node.id];
+    return typeof custom === "string" && custom.trim() && custom.trim() !== node.name;
+  }
+
+  // No PDF único existe um arquivo só: por padrão segue a 1ª tela da lista,
+  // e para de seguir assim que o usuário digita algo.
+  function singleBaseName() {
+    if (typeof singleCustomName === "string" && singleCustomName.trim()) {
+      return singleCustomName.trim();
+    }
+    return nodes.length ? nodes[0].name : docName;
+  }
+
+  // Texto fixo acrescentado a todos os arquivos, no formato do sufixo de
+  // layout: opcional, ligado por um check.
+  function nameSuffix() {
+    if (!nameSuffixCheckbox.checked) return "";
+    const v = nameSuffixInput.value.trim();
+    return v ? "-" + sanitize(v) : "";
   }
 
   // Categoria de layout pela largura (>= 400px = desktop).
@@ -801,6 +883,7 @@
       quality: parseInt(qualityInput.value, 10),
       layout: layoutCheckbox.checked,
       zip: zipCheckbox.checked,
+      nameSuffix: nameSuffixCheckbox.checked,
     };
   }
 
@@ -847,6 +930,14 @@
     layoutCheckbox.checked = !!s.layout;
     zipCheckbox.checked = !!s.zip;
     zipNameWrapEl.style.display = s.zip ? "block" : "none";
+
+    // O texto do sufixo é específico do documento, então não vem do storage —
+    // só a escolha de usá-lo. O valor é preenchido com o nome do documento.
+    nameSuffixCheckbox.checked = !!s.nameSuffix;
+    nameSuffixWrapEl.style.display = s.nameSuffix ? "block" : "none";
+    if (s.nameSuffix && !nameSuffixInput.value.trim()) {
+      nameSuffixInput.value = docName;
+    }
 
     updateCompressUI();
     refresh();
@@ -904,26 +995,15 @@
   }
 
   // Evita dois arquivos com o mesmo nome no mesmo lote.
-  function dedupe(names) {
-    const seen = {};
-    return names.map((name) => {
-      if (!seen[name]) {
-        seen[name] = 1;
-        return name;
-      }
-      seen[name]++;
-      return name.replace(/\.pdf$/i, "") + `-${seen[name]}.pdf`;
-    });
-  }
-
   function zipEnabled() {
     return zipCheckbox.checked;
   }
 
-  // Nome base do .zip: campo próprio, caindo no nome do arquivo.
+  // Nome base do .zip: campo próprio, caindo no nome do documento. Não usa o
+  // nome das telas porque o pacote representa o conjunto, não uma delas.
   function zipBaseName() {
     const v = zipNameInput.value.trim();
-    return v || currentName();
+    return v || docName;
   }
 
   function zipFileName() {
@@ -933,19 +1013,31 @@
   // Lista final de arquivos: [{ id, fileName }]
   function buildItems() {
     if (currentMode() === "single") {
-      const name = sanitize(currentName()) + layoutSuffixCombined() + tail();
+      const name =
+        sanitize(singleBaseName()) + nameSuffix() + layoutSuffixCombined() + tail();
       return [{ id: nodes.length ? nodes[0].id : null, fileName: name }];
     }
 
-    // Com uma única tela, o nome segue o formato original (sem o nome do frame).
-    const withScreenName = nodes.length > 1;
-    const names = nodes.map((n) => {
-      const base = sanitize(currentName());
-      const screen = withScreenName ? "-" + sanitize(n.name) : "";
-      return base + screen + layoutSuffix(n) + tail();
+    // base (nome do frame ou o digitado) + sufixos + data + versão
+    const suffix = nameSuffix();
+    const used = new Set();
+
+    return nodes.map((n) => {
+      const base = sanitize(nameOf(n));
+      const rest = suffix + layoutSuffix(n) + tail();
+
+      // Desempate: dois frames com o mesmo nome são a regra, não a exceção.
+      // O contador entra no nome, não no fim do arquivo, para a versão seguir
+      // sendo o último elemento do padrão.
+      let fileName = base + rest;
+      let count = 2;
+      while (used.has(fileName.toLowerCase())) {
+        fileName = base + " (" + count++ + ")" + rest;
+      }
+      used.add(fileName.toLowerCase());
+
+      return { id: n.id, fileName };
     });
-    const unique = dedupe(names);
-    return nodes.map((n, i) => ({ id: n.id, fileName: unique[i] }));
   }
 
   // ================= PDF a partir de imagens =================
@@ -1294,13 +1386,24 @@
   }
 
   function updatePreview() {
+    // Sem seleção não há nome de frame: mostra a forma do nome, não um exemplo
+    // inventado, para não sugerir que existe um arquivo pronto para sair.
     if (nodes.length === 0) {
+      singleNameWrapEl.style.display = "none";
       const name =
-        sanitize(currentName()) +
+        "Nome da tela" +
+        nameSuffix() +
         (layoutCheckbox.checked ? " (desktop/mobile)" : "") +
         tail();
       previewEl.innerHTML = '<div class="row">' + renderName(name) + "</div>";
       return;
+    }
+
+    // No PDF único o arquivo é um só, e é aqui que ele é nomeado.
+    const single = currentMode() === "single";
+    singleNameWrapEl.style.display = single ? "block" : "none";
+    if (single && document.activeElement !== singleNameInput) {
+      singleNameInput.value = singleBaseName();
     }
 
     const items = buildItems();
@@ -1545,6 +1648,15 @@
   function renderList() {
     selCountEl.textContent = nodes.length === 0 ? "0" : "— " + nodes.length + " tela(s)";
     emptyEl.style.display = nodes.length === 0 ? "block" : "none";
+
+    // Guarda o cursor: a lista é reconstruída inteira, e sem isso uma mensagem
+    // do code.js no meio da digitação tiraria o foco do campo de nome.
+    const ativo = document.activeElement;
+    const focado =
+      ativo && ativo.classList && ativo.classList.contains("nm-input")
+        ? { id: ativo.dataset.nodeId, pos: ativo.selectionStart }
+        : null;
+
     listEl.innerHTML = "";
 
     const reorderable = currentMode() === "single" && nodes.length > 1;
@@ -1574,10 +1686,41 @@
         thumb.appendChild(img);
       }
 
-      const nm = document.createElement("span");
-      nm.className = "nm";
-      nm.textContent = n.name;
-      nm.title = n.name;
+      // No modo separado cada linha é um arquivo, então o nome é editável aqui.
+      // No PDF único as linhas são páginas: o nome do arquivo fica em "Nome final".
+      let nm;
+      if (reorderable) {
+        nm = document.createElement("span");
+        nm.className = "nm";
+        nm.textContent = n.name;
+        nm.title = n.name;
+      } else {
+        nm = document.createElement("input");
+        nm.type = "text";
+        nm.className = "nm-input" + (isRenamed(n) ? " edited" : "");
+        nm.value = nameOf(n);
+        nm.placeholder = n.name;
+        nm.title = "Nome do arquivo — vazio volta a usar “" + n.name + "”";
+        nm.setAttribute("aria-label", "Nome do arquivo da tela " + n.name);
+        nm.dataset.nodeId = n.id;
+
+        nm.addEventListener("input", () => {
+          customNames[n.id] = nm.value;
+          nm.classList.toggle("edited", isRenamed(n));
+          // não re-renderiza a lista: isso mataria o cursor no meio da digitação
+          updatePreview();
+          renderTotals();
+        });
+        // ao sair vazio, mostra de volta o nome do frame que será usado
+        nm.addEventListener("blur", () => {
+          if (!nm.value.trim()) {
+            delete customNames[n.id];
+            nm.value = n.name;
+            nm.classList.remove("edited");
+            updatePreview();
+          }
+        });
+      }
 
       const meta = document.createElement("span");
       meta.className = "meta";
@@ -1629,6 +1772,16 @@
 
       listEl.appendChild(row);
     });
+
+    if (focado) {
+      const alvo = listEl.querySelector(
+        '.nm-input[data-node-id="' + focado.id + '"]'
+      );
+      if (alvo) {
+        alvo.focus();
+        if (focado.pos != null) alvo.setSelectionRange(focado.pos, focado.pos);
+      }
+    }
   }
 
   function renderTotals() {
@@ -1805,10 +1958,40 @@
   }
 
   // ---- Eventos da interface ----
-  fileNameInput.addEventListener("input", updatePreview);
+  nameSuffixCheckbox.addEventListener("change", () => {
+    nameSuffixWrapEl.style.display = nameSuffixCheckbox.checked ? "block" : "none";
+    // ao ligar, parte do nome do documento em vez de deixar o campo vazio
+    if (nameSuffixCheckbox.checked && !nameSuffixInput.value.trim()) {
+      nameSuffixInput.value = docName;
+    }
+    updatePreview();
+    saveSettings();
+  });
+
+  nameSuffixInput.addEventListener("input", updatePreview);
 
   restoreLink.addEventListener("click", () => {
-    fileNameInput.value = docName;
+    nameSuffixInput.value = docName;
+    updatePreview();
+  });
+
+  // Nome do arquivo no modo PDF único: vazio volta a seguir a 1ª tela.
+  singleNameInput.addEventListener("input", () => {
+    singleCustomName = singleNameInput.value;
+    updatePreview();
+  });
+
+  singleNameInput.addEventListener("blur", () => {
+    if (!singleNameInput.value.trim()) {
+      singleCustomName = null;
+      singleNameInput.value = singleBaseName();
+      updatePreview();
+    }
+  });
+
+  restoreSingleNameLink.addEventListener("click", () => {
+    singleCustomName = null;
+    singleNameInput.value = singleBaseName();
     updatePreview();
   });
 
@@ -1819,9 +2002,9 @@
 
   zipCheckbox.addEventListener("change", () => {
     zipNameWrapEl.style.display = zipCheckbox.checked ? "block" : "none";
-    // ao ligar, parte do nome do arquivo em vez de deixar o campo vazio
+    // ao ligar, parte do nome do documento em vez de deixar o campo vazio
     if (zipCheckbox.checked && !zipNameInput.value.trim()) {
-      zipNameInput.value = currentName();
+      zipNameInput.value = docName;
     }
     refresh();
     saveSettings();
@@ -1830,7 +2013,7 @@
   zipNameInput.addEventListener("input", updatePreview);
 
   restoreZipNameLink.addEventListener("click", () => {
-    zipNameInput.value = currentName();
+    zipNameInput.value = docName;
     updatePreview();
   });
 
@@ -2066,10 +2249,12 @@
         invalidateAll();
       }
 
-      // Preenche o campo de nome com o nome do Figma na primeira carga,
-      // sem sobrescrever uma edição já feita pelo usuário.
+      // O nome dos arquivos vem dos frames, então não há campo para preencher
+      // na primeira carga — só o sufixo, quando ele está ligado.
       if (!nameInitialized) {
-        fileNameInput.value = docName;
+        if (nameSuffixCheckbox.checked && !nameSuffixInput.value.trim()) {
+          nameSuffixInput.value = docName;
+        }
         nameInitialized = true;
       }
 
