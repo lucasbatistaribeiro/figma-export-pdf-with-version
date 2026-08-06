@@ -209,7 +209,7 @@ Os detalhes trazem o passo em que o plugin estava, a tela envolvida, a configura
 **Exportação**
 
 - **Lote** — exporta todas as telas selecionadas de uma vez, como arquivos separados ou como um PDF único multipágina.
-- **Lista ordenável** — mostra as telas selecionadas com miniatura e dimensões; no modo *PDF único* a ordem da lista define a ordem das páginas.
+- **Lista ordenável** — mostra as telas selecionadas com miniatura; no modo *PDF único* a ordem da lista define a ordem das páginas.
 - **Compressão opcional** — slider com paradas em 4 níveis (Nenhuma → Máxima), com aviso claro de que o texto deixa de ser selecionável.
 - **Pacote .zip** — junta tudo num único download, com nome próprio; DEFLATE nativo, sem bibliotecas externas.
 - **Prévia de tamanho medida** — mostra o peso final de cada arquivo e o total antes/depois, com o percentual de redução.
