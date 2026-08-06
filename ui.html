@@ -82,22 +82,6 @@
   }
   select:focus { border-color: var(--brand); }
 
-  .preview {
-    background: var(--input-bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px;
-    font-size: 11px;
-    line-height: 1.5;
-    word-break: break-all;
-  }
-  .preview .pname { color: var(--text); font-weight: 500; }
-  .preview .suffix { color: var(--brand); font-weight: 600; }
-  .preview .row + .row { margin-top: 6px; }
-  .preview .more { color: var(--text-secondary); }
-  .preview .size { color: var(--text-secondary); font-weight: 400; }
-  .preview .row.zip .pname { font-weight: 600; }
-  .preview .row.inner { padding-left: 12px; }
 
   /* Campo de texto genérico (nome do arquivo) */
   .text-wrap {
@@ -208,16 +192,42 @@
   .list {
     border: 1px solid var(--border);
     border-radius: 6px;
-    max-height: 148px;
+    /* As linhas ficaram mais altas ao absorver o nome final, e a seção
+       "Nome final" saiu — o espaço que ela ocupava vem para cá. */
+    max-height: 264px;
     overflow-y: auto;
   }
   .list:empty { display: none; }
+  /* Cada linha tem duas alturas: o nome editável em cima e o nome final do
+     arquivo embaixo, para a causa e o efeito ficarem no mesmo lugar. */
   .item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px;
+  }
+  .item .body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .item .top {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 8px;
+    min-width: 0;
   }
+  .item .final {
+    font-size: 10px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    word-break: break-all;
+    padding-left: 7px; /* alinha com o texto dentro do input */
+  }
+  .item .final .pname { color: var(--text); }
+  .item .final .suffix { color: var(--brand); font-weight: 600; }
   .item + .item { border-top: 1px solid var(--border); }
   .item .idx {
     flex: none;
@@ -280,6 +290,18 @@
   .item .meta .from { text-decoration: line-through; }
   .item .meta .to { color: var(--success); font-weight: 600; }
   .item .meta .to.grow { color: var(--danger); }
+  /* Nome final abaixo de um campo de texto (PDF único e .zip). */
+  .final-line {
+    margin-top: 6px;
+    font-size: 10px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    word-break: break-all;
+  }
+  .final-line .pname { color: var(--text); }
+  .final-line .suffix { color: var(--brand); font-weight: 600; }
+  .final-line .size { color: var(--text-secondary); }
+
   .item .move {
     flex: none;
     display: flex;
@@ -367,7 +389,7 @@
   .loading #form .list,
   .loading #form .empty,
   .loading #form .totals,
-  .loading #form .preview {
+  .loading #form .final-line {
     border-color: transparent !important;
     border-radius: 6px;
     background-color: var(--input-bg);
@@ -396,7 +418,7 @@
   .loading #form .list > *,
   .loading #form .empty,
   .loading #form .totals,
-  .loading #form .preview > * {
+  .loading #form .final-line {
     visibility: hidden;
   }
   .loading #form .label,
@@ -522,7 +544,7 @@
     .loading #form .list,
     .loading #form .empty,
     .loading #form .totals,
-    .loading #form .preview {
+    .loading #form .final-line {
       animation: none;
       background-image: none;
     }
@@ -539,6 +561,20 @@
     <div class="list" id="list"></div>
     <div class="empty" id="empty">Selecione uma ou mais telas no canvas.</div>
     <div class="note" id="orderNote" style="display:none">A ordem da lista define a ordem das páginas do PDF — use as setas para reordenar.</div>
+
+    <!-- No PDF único existe um arquivo só para N telas, então ele é nomeado
+         aqui embaixo. No modo separado cada linha da lista traz o seu. -->
+    <div id="singleNameWrap" style="display:none; margin-top:12px">
+      <div class="label-row">
+        <label class="label" for="singleName" style="margin-bottom:0">Nome do PDF</label>
+        <button type="button" class="link" id="restoreSingleName">usar nome da 1ª tela</button>
+      </div>
+      <div class="text-wrap">
+        <input id="singleName" type="text" placeholder="Nome do PDF" />
+      </div>
+      <div class="final-line" id="singleFinal"></div>
+    </div>
+
     <div class="totals" id="totals"></div>
   </div>
 
@@ -557,24 +593,14 @@
     </div>
   </div>
 
-  <!-- O nome de cada arquivo vem do frame; este é um texto fixo acrescentado
-       a todos, no mesmo formato do sufixo de layout. -->
+  <!-- Automático como o sufixo de layout: acrescenta o nome do documento a
+       todos os arquivos. Sem campo de texto — quem edita nome é a lista. -->
   <div class="field">
     <label class="check">
       <input type="checkbox" id="nameSuffix" />
       <span class="check-text">Sufixo de nome</span>
-      <span class="check-hint">— acrescenta um texto a todos os arquivos</span>
+      <span class="check-hint" id="nameSuffixHint">— adiciona o nome do documento ao nome</span>
     </label>
-
-    <div id="nameSuffixWrap" style="display:none; margin-top:10px">
-      <div class="label-row">
-        <label class="label" for="nameSuffixValue" style="margin-bottom:0">Texto do sufixo</label>
-        <button type="button" class="link" id="restoreName">usar nome do Figma</button>
-      </div>
-      <div class="text-wrap">
-        <input id="nameSuffixValue" type="text" placeholder="Ex.: Projeto" />
-      </div>
-    </div>
   </div>
 
   <div class="field">
@@ -595,23 +621,6 @@
     </label>
   </div>
 
-  <div class="field">
-    <span class="label">Nome final</span>
-
-    <!-- No PDF único existe um arquivo só para N telas: o nome dele é editado
-         aqui. No modo separado a edição fica na linha de cada tela. -->
-    <div id="singleNameWrap" style="display:none; margin-bottom:8px">
-      <div class="label-row">
-        <label class="label" for="singleName" style="margin-bottom:0">Nome do PDF</label>
-        <button type="button" class="link" id="restoreSingleName">usar nome da 1ª tela</button>
-      </div>
-      <div class="text-wrap">
-        <input id="singleName" type="text" placeholder="Nome do PDF" />
-      </div>
-    </div>
-
-    <div class="preview" id="preview">—</div>
-  </div>
 
   <div class="field">
     <div class="label-row">
@@ -652,11 +661,12 @@
     <div id="zipNameWrap" style="display:none; margin-top:10px">
       <div class="label-row">
         <label class="label" for="zipName" style="margin-bottom:0">Nome do .zip</label>
-        <button type="button" class="link" id="restoreZipName">usar nome do arquivo</button>
+        <button type="button" class="link" id="restoreZipName">usar nome do documento</button>
       </div>
       <div class="text-wrap">
         <input id="zipName" type="text" placeholder="Nome do .zip" />
       </div>
+      <div class="final-line" id="zipFinal"></div>
     </div>
   </div>
 
@@ -686,12 +696,12 @@
 <script>
   const versionInput = document.getElementById("version");
   const nameSuffixCheckbox = document.getElementById("nameSuffix");
-  const nameSuffixWrapEl = document.getElementById("nameSuffixWrap");
-  const nameSuffixInput = document.getElementById("nameSuffixValue");
-  const restoreLink = document.getElementById("restoreName");
+  const nameSuffixHintEl = document.getElementById("nameSuffixHint");
   const singleNameWrapEl = document.getElementById("singleNameWrap");
   const singleNameInput = document.getElementById("singleName");
+  const singleFinalEl = document.getElementById("singleFinal");
   const restoreSingleNameLink = document.getElementById("restoreSingleName");
+  const zipFinalEl = document.getElementById("zipFinal");
   const layoutCheckbox = document.getElementById("layout");
   const compressSelect = document.getElementById("compress");
   const slidersEl = document.getElementById("sliders");
@@ -700,7 +710,6 @@
   const scaleValueEl = document.getElementById("scaleValue");
   const qualityValueEl = document.getElementById("qualityValue");
   const compressNoteEl = document.getElementById("compressNote");
-  const previewEl = document.getElementById("preview");
   const exportBtn = document.getElementById("export");
   const measureBtn = document.getElementById("measure");
   const msgEl = document.getElementById("msg");
@@ -835,12 +844,13 @@
     return nodes.length ? nodes[0].name : docName;
   }
 
-  // Texto fixo acrescentado a todos os arquivos, no formato do sufixo de
-  // layout: opcional, ligado por um check.
+  // Sufixo de nome: automático como o de layout. Acrescenta o nome do
+  // documento a todos os arquivos — não é editável aqui porque renomear é
+  // função da lista de telas, arquivo por arquivo.
   function nameSuffix() {
     if (!nameSuffixCheckbox.checked) return "";
-    const v = nameSuffixInput.value.trim();
-    return v ? "-" + sanitize(v) : "";
+    const v = sanitize(docName);
+    return v ? "-" + v : "";
   }
 
   // Categoria de layout pela largura (>= 400px = desktop).
@@ -931,13 +941,8 @@
     zipCheckbox.checked = !!s.zip;
     zipNameWrapEl.style.display = s.zip ? "block" : "none";
 
-    // O texto do sufixo é específico do documento, então não vem do storage —
-    // só a escolha de usá-lo. O valor é preenchido com o nome do documento.
+    // O sufixo é automático (nome do documento): guarda só a escolha de usá-lo.
     nameSuffixCheckbox.checked = !!s.nameSuffix;
-    nameSuffixWrapEl.style.display = s.nameSuffix ? "block" : "none";
-    if (s.nameSuffix && !nameSuffixInput.value.trim()) {
-      nameSuffixInput.value = docName;
-    }
 
     updateCompressUI();
     refresh();
@@ -1385,69 +1390,66 @@
     return out;
   }
 
+  // O nome final de cada arquivo mora embaixo do campo que o gera: na linha da
+  // tela (modo separado), sob o campo do PDF único, e sob o campo do .zip.
   function updatePreview() {
-    // Sem seleção não há nome de frame: mostra a forma do nome, não um exemplo
-    // inventado, para não sugerir que existe um arquivo pronto para sair.
-    if (nodes.length === 0) {
-      singleNameWrapEl.style.display = "none";
-      const name =
-        "Nome da tela" +
-        nameSuffix() +
-        (layoutCheckbox.checked ? " (desktop/mobile)" : "") +
-        tail();
-      previewEl.innerHTML = '<div class="row">' + renderName(name) + "</div>";
-      return;
+    const single = currentMode() === "single";
+    const hasNodes = nodes.length > 0;
+
+    // ---- PDF único: um arquivo para N telas ----
+    singleNameWrapEl.style.display = single && hasNodes ? "block" : "none";
+    if (single && hasNodes) {
+      if (document.activeElement !== singleNameInput) {
+        singleNameInput.value = singleBaseName();
+      }
+      const items = buildItems();
+      const sizes = fileSizes();
+      const approx = sizesAreApprox() ? "≈ " : "";
+      singleFinalEl.innerHTML =
+        renderName(items[0].fileName) +
+        (sizes && sizes[0] != null
+          ? ' <span class="size">— ' + approx + formatBytes(sizes[0]) + "</span>"
+          : "") +
+        ' <span class="size">· ' + nodes.length + " página(s)</span>";
     }
 
-    // No PDF único o arquivo é um só, e é aqui que ele é nomeado.
-    const single = currentMode() === "single";
-    singleNameWrapEl.style.display = single ? "block" : "none";
-    if (single && document.activeElement !== singleNameInput) {
-      singleNameInput.value = singleBaseName();
+    // ---- .zip: o arquivo realmente baixado ----
+    if (zipEnabled()) {
+      const items = hasNodes ? buildItems() : [];
+      const sizes = fileSizes();
+      let size = "";
+      if (sizes && items.length) {
+        const max = zipUpperBound(sizes, items.map((it) => it.fileName));
+        size = ' <span class="size">— até ' + formatBytes(max) + "</span>";
+      }
+      zipFinalEl.innerHTML = renderName(zipFileName()) + size;
+    } else {
+      zipFinalEl.innerHTML = "";
     }
+
+    // ---- modo separado: um nome final por linha da lista ----
+    updateFinalNames();
+  }
+
+  // Atualiza só o texto do nome final de cada linha. Não reconstrói a lista,
+  // para não matar o cursor de quem está digitando um nome.
+  function updateFinalNames() {
+    if (currentMode() === "single") return;
 
     const items = buildItems();
-    const finalSizes = fileSizes();
-    const shown = items.slice(0, 3);
-
+    const sizes = fileSizes();
     const approx = sizesAreApprox() ? "≈ " : "";
-    const zipped = zipEnabled();
-    const rowClass = zipped ? "row inner" : "row";
 
-    let html = "";
-
-    // com .zip, o arquivo baixado é ele; os PDFs viram o conteúdo
-    if (zipped) {
-      let zipSize = "";
-      if (finalSizes) {
-        const max = zipUpperBound(finalSizes, items.map((it) => it.fileName));
-        zipSize = ' <span class="size">— até ' + formatBytes(max) + "</span>";
-      }
-      html +=
-        '<div class="row zip">' + renderName(zipFileName()) + zipSize + "</div>";
-    }
-
-    html += shown
-      .map((it, i) => {
-        const size =
-          finalSizes && finalSizes[i] != null
-            ? ' <span class="size">— ' + approx + formatBytes(finalSizes[i]) + "</span>"
-            : "";
-        return '<div class="' + rowClass + '">' + renderName(it.fileName) + size + "</div>";
-      })
-      .join("");
-
-    if (items.length > shown.length) {
-      html +=
-        '<div class="' + rowClass + ' more">+ ' +
-        (items.length - shown.length) +
-        " arquivo(s)</div>";
-    }
-    if (currentMode() === "single") {
-      html +=
-        '<div class="row more">' + nodes.length + " página(s) em um único PDF</div>";
-    }
-    previewEl.innerHTML = html;
+    items.forEach((it, i) => {
+      const el = listEl.querySelector('.final[data-node-id="' + it.id + '"]');
+      if (!el) return;
+      el.innerHTML =
+        renderName(it.fileName) +
+        (sizes && sizes[i] != null
+          ? ' <span class="size">— ' + approx + formatBytes(sizes[i]) + "</span>"
+          : "");
+      el.title = it.fileName;
+    });
   }
 
   // ---- Animação de exportação ----
@@ -1659,7 +1661,8 @@
 
     listEl.innerHTML = "";
 
-    const reorderable = currentMode() === "single" && nodes.length > 1;
+    const single = currentMode() === "single";
+    const reorderable = single && nodes.length > 1;
     const compressed = !!compression();
     const showComp = compressed && compKey === compressionKey();
 
@@ -1686,10 +1689,11 @@
         thumb.appendChild(img);
       }
 
-      // No modo separado cada linha é um arquivo, então o nome é editável aqui.
-      // No PDF único as linhas são páginas: o nome do arquivo fica em "Nome final".
+      // No modo separado cada linha é um arquivo: nome editável em cima e nome
+      // final embaixo. No PDF único as linhas são páginas, e o arquivo único é
+      // nomeado abaixo da lista.
       let nm;
-      if (reorderable) {
+      if (single) {
         nm = document.createElement("span");
         nm.className = "nm";
         nm.textContent = n.name;
@@ -1744,10 +1748,26 @@
           n.width != null && n.height != null ? n.width + "×" + n.height : "";
       }
 
+      // corpo em duas alturas: nome + tamanho em cima, nome final embaixo
+      const body = document.createElement("span");
+      body.className = "body";
+
+      const top = document.createElement("span");
+      top.className = "top";
+      top.appendChild(nm);
+      top.appendChild(meta);
+      body.appendChild(top);
+
+      if (!single) {
+        const final = document.createElement("span");
+        final.className = "final";
+        final.dataset.nodeId = n.id;
+        body.appendChild(final);
+      }
+
       row.appendChild(idx);
       row.appendChild(thumb);
-      row.appendChild(nm);
-      row.appendChild(meta);
+      row.appendChild(body);
 
       if (reorderable) {
         const moveWrap = document.createElement("span");
@@ -1772,6 +1792,9 @@
 
       listEl.appendChild(row);
     });
+
+    // as linhas nascem sem o nome final; quem preenche é updateFinalNames()
+    updateFinalNames();
 
     if (focado) {
       const alvo = listEl.querySelector(
@@ -1959,20 +1982,8 @@
 
   // ---- Eventos da interface ----
   nameSuffixCheckbox.addEventListener("change", () => {
-    nameSuffixWrapEl.style.display = nameSuffixCheckbox.checked ? "block" : "none";
-    // ao ligar, parte do nome do documento em vez de deixar o campo vazio
-    if (nameSuffixCheckbox.checked && !nameSuffixInput.value.trim()) {
-      nameSuffixInput.value = docName;
-    }
     updatePreview();
     saveSettings();
-  });
-
-  nameSuffixInput.addEventListener("input", updatePreview);
-
-  restoreLink.addEventListener("click", () => {
-    nameSuffixInput.value = docName;
-    updatePreview();
   });
 
   // Nome do arquivo no modo PDF único: vazio volta a seguir a 1ª tela.
@@ -2249,12 +2260,10 @@
         invalidateAll();
       }
 
-      // O nome dos arquivos vem dos frames, então não há campo para preencher
-      // na primeira carga — só o sufixo, quando ele está ligado.
+      // O nome dos arquivos vem dos frames e o sufixo vem do documento:
+      // não há campo de nome para preencher na primeira carga.
       if (!nameInitialized) {
-        if (nameSuffixCheckbox.checked && !nameSuffixInput.value.trim()) {
-          nameSuffixInput.value = docName;
-        }
+        nameSuffixHintEl.textContent = '— adiciona "' + docName + '" ao nome';
         nameInitialized = true;
       }
 
