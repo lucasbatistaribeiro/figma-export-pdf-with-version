@@ -658,7 +658,7 @@
   </div>
 
   <div class="field">
-    <label class="check">
+    <label class="check" title="Frames com 400px ou mais de largura contam como desktop; abaixo disso, mobile.">
       <input type="checkbox" id="layout" />
       <span class="check-text">Sufixo de layout</span>
       <span class="check-hint">— adiciona (desktop) ou (mobile) ao nome</span>
@@ -671,11 +671,13 @@
       <label class="label" for="compress" style="margin-bottom:0">Compressão</label>
       <button class="link" id="measure" disabled>calcular tamanhos</button>
     </div>
+    <!-- Rótulos dizem a consequência da escolha; os números técnicos
+         (DPI, qualidade JPEG) moram na nota abaixo do campo. -->
     <select id="compress">
       <option value="none" selected>Nenhuma — vetorial, texto selecionável</option>
-      <option value="light">Leve — 144 DPI, qualidade 92%</option>
-      <option value="medium">Média — 108 DPI, qualidade 82%</option>
-      <option value="max">Máxima — 72 DPI, qualidade 65%</option>
+      <option value="light">Leve — quase sem perda visível</option>
+      <option value="medium">Média — equilíbrio entre peso e nitidez</option>
+      <option value="max">Máxima — menor arquivo possível</option>
       <option value="custom">Personalizada…</option>
     </select>
 
@@ -1042,6 +1044,11 @@
     if (n < 1024) return n + " B";
     if (n < 1024 * 1024) return (n / 1024).toFixed(0).replace(".", ",") + " KB";
     return (n / (1024 * 1024)).toFixed(1).replace(".", ",") + " MB";
+  }
+
+  // "1 tela" / "3 telas" — plural de verdade, sem "(s)"
+  function count(n, singular, plural) {
+    return n + " " + (n === 1 ? singular : plural);
   }
 
   function tail() {
@@ -1467,7 +1474,7 @@
         (sizes && sizes[0] != null
           ? ' <span class="size">— ' + approx + formatBytes(sizes[0]) + "</span>"
           : "") +
-        ' <span class="size">· ' + nodes.length + " página(s)</span>";
+        ' <span class="size">· ' + count(nodes.length, "página", "páginas") + "</span>";
     }
 
     // ---- .zip: o arquivo realmente baixado ----
@@ -1660,7 +1667,9 @@
       compressNoteEl.textContent =
         "As telas são rasterizadas em JPEG a " +
         Math.round(72 * c.scale) +
-        " DPI. O arquivo fica bem menor, mas o texto deixa de ser selecionável." +
+        " DPI, qualidade " +
+        Math.round(c.quality * 100) +
+        "%. O arquivo fica bem menor, mas o texto deixa de ser selecionável." +
         measureHint;
     }
   }
@@ -1705,7 +1714,8 @@
   }
 
   function renderList() {
-    selCountEl.textContent = nodes.length === 0 ? "0" : "— " + nodes.length + " tela(s)";
+    selCountEl.textContent =
+      nodes.length === 0 ? "0" : "— " + count(nodes.length, "tela", "telas");
     emptyEl.style.display = nodes.length === 0 ? "block" : "none";
 
     // Guarda o cursor: a lista é reconstruída inteira, e sem isso uma mensagem
@@ -2024,10 +2034,10 @@
 
     if (info.zipped) {
       msgEl.textContent =
-        `.zip exportado com ${info.files} arquivo(s)` +
+        `.zip exportado com ${count(info.files, "arquivo", "arquivos")}` +
         (info.zipSize ? ` — ${formatBytes(info.zipSize)}.` : ".");
     } else if (info.mode === "single") {
-      msgEl.textContent = `PDF exportado com ${info.total} página(s).`;
+      msgEl.textContent = `PDF exportado com ${count(info.total, "página", "páginas")}.`;
     } else {
       msgEl.textContent =
         info.total === 1 ? "PDF exportado." : `${info.total} PDFs exportados.`;
